@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+#LaTeX
+*.pdf
+*.log
+*.aux
+*.bbl
+*.blg
+*.out

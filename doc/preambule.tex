@@ -1,0 +1,73 @@
+
+\usepackage{listings}									%% Best way to include code
+
+%\usepackage{colortbl}									%% Colored tables
+\usepackage{xcolor}										%% Extended color
+\usepackage{framed}										%% For frames
+
+\newif\iffancy
+\fancyfalse
+
+\iffancy
+\usepackage{fancyhdr}									%% Fancy Header
+\pagestyle{fancy}
+\setlength{\headheight}{15pt}
+%% ATTENTION
+%%	The following \sectitle refers to the title
+%%  of the subsection setted from \newsubsection
+%% 	It allows the text of this subsection to be 
+%%	written in the header.
+\lhead{Left}
+\chead{Center}
+\rfoot{\textit{\thesubsection \phantom{W} \sectitle}}
+%\else
+%\pagestyle{headings}
+\fi
+\usepackage{bbold}										%%
+\usepackage{lmodern}									%% cmbright, charter, mathptmx
+%\usepackage{slashbox}									%% Double entry tables
+%\usepackage{array,multirow,makecell}	%% Extended options for tables
+\usepackage[a4paper]{geometry}
+\usepackage{stmaryrd}
+\usepackage{amsthm,amsmath,amsfonts,amssymb}
+%\usepackage{xspace}										%% In case of \newcommand{}{}
+\usepackage[hidelinks]{hyperref}
+\definecolor{violet}{rgb}{0.5,0,0.5} 
+
+\newtheorem{ex}{Exercice}
+%% Details
+\AddThinSpaceBeforeFootnotes 
+\FrenchFootnotes
+
+%% Colors
+\definecolor{lightgreen}{rgb}{0.5,1.0,0.5} 
+\definecolor{lightred}{rgb}{1.0,0.5,0.5} 
+\definecolor{fond}{gray}{0.85} 
+\newenvironment{cadrecode}
+{
+%pour tracer des barres verticales devant un $ 
+\def\FrameCommand{{\color[HTML]{888888}\vrule width 3pt}\colorbox{fond}}% 
+\MakeFramed {\advance\hsize-\width \FrameRestore}}% 
+{\endMakeFramed} 
+
+\newcommand{\sectitle}{}
+\newcommand{\newsubsection}[1]
+{\subsection{#1}\renewcommand{\sectitle}{#1}}
+
+\newcommand{\remark}[1]{\begin{cadrecode}{#1} \end{cadrecode}}
+
+
+
+
+
+
+\lstset{language=c++,
+basicstyle=\ttfamily,
+breaklines=true,
+keepspaces=true,
+tabsize=2,
+morekeywords={set, subject, param, var, in, to, union},
+keywordstyle=\color{blue},
+commentstyle=\color[gray]{0.25},
+stringstyle=\color{purple},
+extendedchars=true}
