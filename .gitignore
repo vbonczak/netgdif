@@ -7,6 +7,8 @@
 *.o
 *.obj
 
+netgdif
+
 # Precompiled Headers
 *.gch
 *.pch
@@ -31,7 +33,7 @@
 *.out
 *.app
 
-#LaTeX
+# LaTeX
 *.pdf
 *.log
 *.aux
