@@ -1,7 +1,12 @@
 #include "main.h"
+#include "tuto.h"
 
-int main(int arcg, char* argv[])
+int main(int argc, char* argv[])
 {
-	cout << "Hello" << endl;
+	if (argc < 4)
+		serveur();
+	else
+		client(argc, argv);
+
 	return EXIT_SUCCESS;
 }
