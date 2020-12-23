@@ -110,16 +110,17 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength)
 {
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
-	uint64_t sourceID;
+	char sourceID[8];
 	if (body[0] == 8) /*Format court*/
 	{
-		sourceID = *((uint64_t*)(body + 1));
+		memcpy(sourceID, body + 1, 8);
 		/*TODO faire qqch avec ça*/
 	}
 	else if (body[0] == 16)
 	{
-		sourceID = *((uint64_t*)(body + 1));
-		uint64_t destID = *((uint64_t*)(body + 9));
+		memcpy(sourceID, body + 1, 8);
+		char destID[8];
+		memcpy(destID, body + 9, 8);
 		/*TODO faire qqch avec ça*/
 	}
 	else
@@ -138,7 +139,7 @@ int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength)
 	if (body[0] != 18)/*Taille fixe de 18 octets : longueur puis 128 bits d'IPv6 (ou v4-mapped) puis 2 octets de port*/
 		return PARSE_EINVALID;
 
-	unsigned short port = *((unsigned short*)(body + 17));
+	unsigned short port = ShortFromNetwork(*((unsigned short*)(body + 17)));
 	/*l'IP se situe de 1 à 16 inclus*/
 	return 0;
 }
@@ -153,8 +154,9 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength)
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
 
-	uint64_t senderID = *(uint64_t*)(body + 1);
-	unsigned int nonce = *(unsigned int*)(body + 9);
+	char senderID[8];
+	memcpy(senderID, body + 1, 8);
+	unsigned int nonce = IntFromNetwork(*(unsigned int*)(body + 9));
 
 	char* data = new char[len - 12];
 	memcpy(data, body + 13, len - 12);
@@ -174,8 +176,9 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength)
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
 
-	uint64_t senderID = *(uint64_t*)(body + 1);
-	unsigned int nonce = *(unsigned int*)(body + 9);
+	char senderID[8];
+	memcpy(senderID, body + 1, 8);
+	unsigned int nonce = IntFromNetwork(*(unsigned int*)(body + 9));
 
 	/*todo faire qqch avec ces infos*/
 
