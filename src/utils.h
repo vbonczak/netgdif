@@ -10,6 +10,16 @@
 #include <netdb.h>
 #include <string.h>
 #include <signal.h>
+#include <arpa/inet.h>
+
+#define VERBOSE
+
+#ifdef VERBOSE
+#define DEBUG(x)	verbose(x)
+void verbose(char* msg);
+#else
+#define DEBUG(x)	 
+#endif
 
 /// <summary>
 /// Retourne le descripteur de fichier socket correspondant aux informations de connexion.
@@ -20,5 +30,18 @@
 /// <param name="p_addr">Champ rempli par cette fonction contenant l'adresse obtenue.</param>
 /// <returns></returns>
 int NewSocket(int domain, int type, int port, sockaddr* p_addr);
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="netlong"></param>
+/// <returns></returns>
+unsigned int IntFromNetwork(unsigned int netlong);
+
+unsigned int IntToNetwork(unsigned int locallong);
+
+unsigned short ShortFromNetwork(unsigned short netshort);
+
+unsigned short ShortToNetwork(unsigned short localshort);
 
 #endif

@@ -16,7 +16,7 @@ void serveur()
 
 	/*Coordonnées du serveur*/
 	memset(host, 0, NI_MAXHOST);
-	memset(serv, 0, NI_NAMEREQD);
+	memset(service, 0, NI_NAMEREQD);
 	if (getnameinfo((struct sockaddr*)&servaddr, sizeof(servaddr), host, NI_MAXHOST, service, NI_MAXSERV, NI_NAMEREQD))
 		printf("* Server ECHO at : %s:%d\n", host, ntohs(servaddr.sin_port));
 	else

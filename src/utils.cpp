@@ -10,12 +10,11 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 		return -1;
 	}
 
-	/*Réutilisation d'une adresse existante*/
+	/*RÃ©utilisation d'une adresse existante*/
 	int optval = 1;
 	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-	//signal(SIGPIPE, SIG_IGN); /*Ignorer le fait qu'on écrive dans le vide*/
-
+	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on Ã©crive dans le vide*/
 	socklen_t len_p_addr = 0;
 
 	/*Bind l'adresse selon IPv4 ou IPv6*/
@@ -52,3 +51,30 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 
 	return fd;
 }
+
+unsigned int IntFromNetwork(unsigned int netlong)
+{
+	return ntohl(netlong);
+}
+
+unsigned int IntToNetwork(unsigned int locallong)
+{
+	return htonl(locallong);
+}
+
+unsigned short ShortFromNetwork(unsigned short netshort)
+{
+	return ntohs(netshort);
+}
+
+unsigned short ShortToNetwork(unsigned short localshort)
+{
+	return htons(localshort);
+}
+
+
+
+
+#ifdef VERBOSE
+void verbose(char* msg) { printf("DEBUG : %s", msg); }
+#endif
