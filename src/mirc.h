@@ -26,10 +26,31 @@
 
 char* mircstrerror(int code);
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="data"></param>
+/// <param name="length"></param>
+/// <param name="content">Une référence vers un objet datagramme MIRC initialisé à l'aide de dgramInit().</param>
+/// <returns></returns>
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content);
 
+/// <summary>
+/// 
+/// </summary>
+/// <param name="data"></param>
+/// <param name="length"></param>
+/// <param name="content">Une référence vers un objet datagramme MIRC initialisé à l'aide de dgramInit().</param>
+/// <returns></returns>
 int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content);
 
+/// <summary>
+///  
+/// </summary>
+/// <param name="data"></param>
+/// <param name="sz"></param>
+/// <param name="content">Une référence vers un objet datagramme MIRC initialisé à l'aide de dgramInit().</param>
+/// <returns></returns>
 int parseTLVCollection(char* data, unsigned int sz, MIRC_DGRAM& content);
 
 /*

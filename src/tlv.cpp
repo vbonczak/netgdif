@@ -1,5 +1,17 @@
 #include "tlv.h"
 
+MIRC_DGRAM dgramInit()
+{
+	MIRC_DGRAM ret;
+
+	for (int i = TLV_HELLO; i <= TLV_MaxType; i++)
+	{
+		ret[i] = list<TLV>();
+	}
+
+	return ret;
+}
+
 void freeTLV(int type, TLV* tlv)
 {
 	switch (type)

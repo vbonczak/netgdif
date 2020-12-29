@@ -13,6 +13,7 @@
 #define TLV_ACK				5
 #define TLV_GOAWAY			6
 #define TLV_WARNING			7
+#define TLV_MaxType			7
 
 typedef char UUID[8];
 
@@ -71,6 +72,8 @@ typedef union
 /// Type -> TLV
 /// </summary>
 typedef map<int, list<TLV>> MIRC_DGRAM;
+
+MIRC_DGRAM dgramInit();
 
 #endif
 

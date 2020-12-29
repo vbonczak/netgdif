@@ -196,6 +196,7 @@ int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV
 		return PARSE_EINVALID;
 
 	tlv->goAway.code = body[1];
+	tlv->goAway.message = new char[len - 1];
 	memcpy(tlv->goAway.message, body + 2, len - 1);
 	tlv->goAway.messageLength = len - 1;
 
@@ -212,6 +213,7 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 	if (len + 1 > sz)
 		return PARSE_ETOOBIG;
 
+	tlv->warning.message = new char[len];
 	memcpy(tlv->warning.message, body + 1, len);
 	tlv->warning.length = len;
 	return 0;
