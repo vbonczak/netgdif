@@ -3,6 +3,7 @@
 
 #include <map>
 #include <list>
+#include <string.h>
 
 /*Types de TLV*/
 #define TLV_PAD1			0
@@ -17,9 +18,15 @@
 
 typedef char UUID[8];
 
+bool equalsUUID(const UUID a,const  UUID b);
+
+bool tabEq(const char *a, const char *b, int size = 16);
+
+void copyUUID( UUID from, UUID to);
+
 using namespace std;
 
-typedef struct 
+typedef struct
 {
 	UUID sourceID;
 	bool longFormat;
@@ -36,6 +43,7 @@ typedef struct
 {
 	UUID senderID;
 	unsigned int  nonce;
+	int dataLen;
 	char* data;
 } TLVData;
 
@@ -58,8 +66,15 @@ typedef struct
 	char* message;
 } TLVWarning;
 
-typedef union 
+typedef struct
 {
+	unsigned char len;
+	char* MBZ;
+} TLVPadN;
+
+typedef union
+{
+	TLVPadN padN;
 	TLVHello hello;
 	TLVNeighbour neighbour;
 	TLVData data;

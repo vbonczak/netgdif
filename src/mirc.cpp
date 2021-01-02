@@ -112,7 +112,7 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV*
 {
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
-	 
+
 	if (body[0] == 8) /*Format court*/
 	{
 		memcpy(tlv->hello.sourceID, body + 1, 8);
@@ -123,7 +123,7 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV*
 		memcpy(tlv->hello.sourceID, body + 1, 8);
 		memcpy(tlv->hello.destID, body + 9, 8);
 		tlv->hello.longFormat = true;
-		 
+
 	}
 	else
 		return PARSE_EINVALID;
@@ -161,6 +161,7 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV* 
 	memcpy(tlv->data.senderID, body + 1, 8);
 	unsigned int nonce = IntFromNetwork(*(unsigned int*)(body + 9));
 	tlv->data.nonce = nonce;
+	tlv->data.dataLen = len - 12;
 	tlv->data.data = new char[len - 12];
 	memcpy(tlv->data.data, body + 13, len - 12);
 
@@ -219,6 +220,151 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 	return 0;
 }
 
+TLV* tlvHello(UUID sender)
+{
+	TLV* ret = new TLV();
+	copyUUID(sender, ret->hello.sourceID);
+	ret->hello.longFormat = false;
+	return ret;
+}
+
+TLV* tlvHello(UUID sender, UUID dest)
+{
+	TLV* ret = new TLV();
+	copyUUID(sender, ret->hello.sourceID);
+	ret->hello.longFormat = true;
+	copyUUID(dest, ret->hello.destID);
+	return ret;
+}
+
+TLV* tlvNeighbour(char addrIP[16], unsigned short port)
+{
+	TLV* ret = new TLV();
+	memcpy(ret->neighbour.addrIP, addrIP, 16);
+	ret->neighbour.port = port;
+	return ret;
+}
+
+TLV* tlvData(UUID senderID, char* data)
+{
+	TLV* ret = new TLV();
+	ret->data.data = data;
+	ret->data.nonce = *((unsigned int*)RandomBytes(sizeof(int)));
+	copyUUID(senderID, ret->data.senderID);
+	return ret;
+}
+
+TLV* tlvAck(TLV* data)
+{
+	TLV* ret = new TLV();
+	ret->ack.nonce = data->data.nonce;
+	copyUUID(data->data.senderID, ret->ack.senderID);
+	return ret;
+}
+
+TLV* tlvPadN(unsigned char len)
+{
+	TLV* ret = new TLV();
+	ret->padN.len = len;
+	ret->padN.MBZ = new char[len];
+	for (int i = 0; i < len; i++)
+	{
+		ret->padN.MBZ[i] = 0;
+	}
+	return ret;
+}
+
+TLV* tlvGoAway(char code, unsigned char messageLength, char* message)
+{
+	TLV* ret = new TLV();
+	ret->goAway.code = code;
+	ret->goAway.message = message;
+	ret->goAway.messageLength = messageLength;
+	return ret;
+}
+
+TLV* tlvWarning(unsigned char length, char* message)
+{
+	TLV* ret = new TLV();
+	ret->warning.message = message;
+	ret->warning.length = length;
+	return ret;
+}
+
+
+
+int encodeTLV(TLV* tlv, int type, char* outData)
+{
+	int length = 0;
+	unsigned short curS;
+	unsigned int curI;
+	switch (type)
+	{
+	case TLV_PAD1:
+		outData = new char[1];
+		length = 1;
+		break;
+	case TLV_PADN:
+		memcpy(outData + 2, tlv->padN.MBZ, tlv->padN.len);
+		outData[1] = (char)tlv->padN.len;
+		break;
+	case TLV_HELLO:
+		if (tlv->hello.longFormat)
+		{
+			outData = new char[18];
+			outData[1] = 16;
+			memcpy(outData + 2, tlv->hello.sourceID, 8);
+			memcpy(outData + 10, tlv->hello.destID, 8);
+		}
+		else
+		{
+			outData = new char[10];
+			outData[1] = 8;
+			memcpy(outData + 2, tlv->hello.sourceID, 8);
+		}
+		break;
+	case TLV_NEIGHBOUR:
+		outData = new char[18];
+		outData[1] = 18;
+		memcpy(outData + 2, tlv->neighbour.addrIP, 16);
+		curS = ShortToNetwork(tlv->neighbour.port);
+		memcpy(outData + 18, (char*)(&curS), 2);
+		break;
+	case TLV_DATA:
+		outData = new char[14 + tlv->data.dataLen];
+		outData[1] = 12 + tlv->data.dataLen;
+		memcpy(outData + 2, tlv->data.senderID, 8);
+		curI = IntToNetwork(tlv->data.nonce);
+		memcpy(outData + 10, (char*)(&curI), 4);
+		memcpy(outData + 14, tlv->data.data, tlv->data.dataLen);
+		break;
+	case TLV_ACK:
+		outData = new char[14];
+		outData[1] = 12;
+		memcpy(outData + 2, tlv->ack.senderID, 8);
+		curI = IntToNetwork(tlv->data.nonce);
+		memcpy(outData + 10, (char*)(&curI), 4);
+		break;
+	case TLV_GOAWAY:
+		outData = new char[3 + tlv->goAway.messageLength];
+		outData[1] = 1 + tlv->goAway.messageLength;
+		outData[2] = tlv->goAway.code;
+		memcpy(outData + 3, tlv->goAway.message, tlv->goAway.messageLength);
+		break;
+	case TLV_WARNING:
+		outData = new char[2 + tlv->warning.length];
+		outData[1] = tlv->warning.length;
+		memcpy(outData + 2, tlv->warning.message, tlv->warning.length);
+		break;
+	default:
+		DEBUG("Type de TLV ignoré à l'encodage");
+		break;
+	}
+
+	outData[0] = (char)type;
+
+	return length;
+}
 
 
 /*Transcription des erreurs*/
@@ -245,3 +391,4 @@ char* mircstrerror(int code)
 		break;
 	}
 }
+

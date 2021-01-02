@@ -20,12 +20,12 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 	/*Bind l'adresse selon IPv4 ou IPv6*/
 	if (domain == AF_INET)
 	{
-		struct sockaddr_in addr; 
+		struct sockaddr_in addr;
 		len_p_addr = sizeof(struct sockaddr_in);
 		memset(&addr, 0, len_p_addr);
 		addr.sin_family = AF_INET;
 		addr.sin_port = htons(port);  /*Conversion de boutisme*/
-	 
+
 		if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1)
 		{
 			perror("Attachement socket IPv4 impossible");
@@ -39,7 +39,7 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 		memset(&addr, 0, len_p_addr);
 		addr.sin6_family = AF_INET6;
 		addr.sin6_port = htons(port); /*Conversion de boutisme*/
-		 
+
 		if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
 			perror("Attachement socket IPv6 impossible");
 			return -1;
@@ -72,9 +72,38 @@ unsigned short ShortToNetwork(unsigned short localshort)
 	return htons(localshort);
 }
 
+char* RandomBytes(int size)
+{
+	char* ret = new char(size);
+	for (int i = 0; i < size; i++)
+	{
+		ret[i] = char(rand() % 256);
+	}
+	return ret;
+}
 
+int RandomInt(int min, int max)
+{
+	return (rand() % (max - min)) + min;
+}
+
+int GetTime()
+{
+	using namespace std::chrono;
+	static high_resolution_clock::time_point referenceTime = high_resolution_clock::now();
+	high_resolution_clock::time_point n = high_resolution_clock::now();
+	duration<double, milli> time_span = n - referenceTime;
+	return (int)time_span.count();
+}
 
 
 #ifdef VERBOSE
+void InitUtils()
+{
+	srand(static_cast<unsigned int>(time(NULL)));
+}
 void verbose(char* msg) { printf("DEBUG : %s", msg); }
+
+
+
 #endif

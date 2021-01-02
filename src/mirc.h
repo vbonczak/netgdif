@@ -59,7 +59,7 @@ ne pas inclure le type, déjà traité). le champ body contient donc le contenu
 du message brut (et le reste des données du datagramme).
 Elles renseignent également la taille consommée par le TLV.
 */
-int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV* );
+int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV*);
 int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV* tlv);
 int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV* tlv);
 int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV* tlv);
@@ -67,4 +67,31 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength);
 int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV* tlv);
 int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV* tlv);
 
+
+
+TLV* tlvHello(UUID sender);
+TLV* tlvHello(UUID sender, UUID dest);
+
+TLV* tlvNeighbour(char addrIP[16], unsigned short port);
+TLV* tlvData(UUID senderID, char* data);
+TLV* tlvAck(TLV* data);
+TLV* tlvPadN(unsigned char len);
+
+TLV* tlvGoAway(char code,
+	unsigned char messageLength,
+	char* message);
+
+TLV* tlvWarning(unsigned char length,
+	char* message);
+
+/// <summary>
+/// Encode le TLV dans outData (non alloué avant l'appel), et renvoie
+/// la taille de ces données.
+/// </summary>
+/// <param name="tlv"></param>
+/// <param name="outData"></param>
+/// <returns></returns>
+int encodeTLV(TLV* tlv, int type, char* outData);
+
+ 
 #endif

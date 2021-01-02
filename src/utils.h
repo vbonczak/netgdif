@@ -11,6 +11,11 @@
 #include <string.h>
 #include <signal.h>
 #include <arpa/inet.h>
+#include <chrono>
+
+using namespace std;
+
+void InitUtils();
 
 #define VERBOSE
 
@@ -20,6 +25,12 @@ void verbose(char* msg);
 #else
 #define DEBUG(x)	 
 #endif
+
+/// <summary>
+/// Millisecondes depuis le début de l'exécution.
+/// </summary>
+/// <returns></returns>
+int GetTime();
 
 /// <summary>
 /// Retourne le descripteur de fichier socket correspondant aux informations de connexion.
@@ -43,5 +54,9 @@ unsigned int IntToNetwork(unsigned int locallong);
 unsigned short ShortFromNetwork(unsigned short netshort);
 
 unsigned short ShortToNetwork(unsigned short localshort);
+
+char* RandomBytes(int size);
+
+int RandomInt(int min, int max);
 
 #endif

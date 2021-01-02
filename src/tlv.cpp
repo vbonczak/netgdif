@@ -1,5 +1,25 @@
 #include "tlv.h"
 
+bool equalsUUID (const UUID a, const UUID b)
+{
+	return tabEq(a, b, 8);
+}
+
+bool tabEq(const char* a, const char* b, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		if (a[i] != b[i])
+			return false;
+	}
+	return true;
+}
+
+void copyUUID(	UUID from, UUID to)
+{
+	memcpy(to, from, 8);
+}
+
 MIRC_DGRAM dgramInit()
 {
 	MIRC_DGRAM ret;
