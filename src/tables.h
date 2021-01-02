@@ -14,6 +14,7 @@
 #include <signal.h>
 #include "tlv.h"
 #include "utils.h"
+#include "mirc.h"
 
 typedef struct ADDRESS_s
 {
@@ -31,6 +32,7 @@ typedef struct
 	UUID id;
 	int lastHelloDate;
 	int lastHello16Date;
+	bool symmetrical;
 } INFOPAIR;
 
 typedef struct DATAID_s
@@ -78,7 +80,14 @@ extern unordered_map<ADDRESS, UUID, ADDRESSHash> TVP;
 extern unordered_map<ADDRESS, INFOPAIR, ADDRESSHash> TVA;
 
 /// <summary>
-/// Les données récemment reçues
+/// Les données récemment reçues (uniquement pour les TLV DATA).
 /// </summary>
 extern unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="addr"></param>
+/// <param name="helloTLV"></param>
+void Table_HelloFrom(ADDRESS addr, TLV* helloTLV);
 #endif

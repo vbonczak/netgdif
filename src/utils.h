@@ -26,6 +26,8 @@ void verbose(char* msg);
 #define DEBUG(x)	 
 #endif
 
+#define MINUTE	60000
+
 /// <summary>
 /// Millisecondes depuis le début de l'exécution.
 /// </summary>

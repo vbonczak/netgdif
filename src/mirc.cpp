@@ -1,5 +1,7 @@
 #include "mirc.h"
 
+UUID myId;
+
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {
 	if (length <= 3)
@@ -76,7 +78,7 @@ int parseTLVCollection(char* body, unsigned int sz, MIRC_DGRAM& content)
 		}
 		body += length;
 		sz -= length;
-		if (ret == 0)
+		if (ret == 0 && type != TLV_PADN)
 		{
 			//ajout à la liste des TLV 
 			content[type].push_back(cur);
@@ -274,24 +276,29 @@ TLV* tlvPadN(unsigned char len)
 	return ret;
 }
 
-TLV* tlvGoAway(char code, unsigned char messageLength, char* message)
+TLV* tlvGoAway(char code, unsigned char messageLength, const char* message)
 {
 	TLV* ret = new TLV();
 	ret->goAway.code = code;
-	ret->goAway.message = message;
+	ret->goAway.message = new char[messageLength];
+	memcpy(ret->goAway.message, message, messageLength);
 	ret->goAway.messageLength = messageLength;
 	return ret;
 }
 
-TLV* tlvWarning(unsigned char length, char* message)
+TLV* tlvWarning(unsigned char length, const char* message)
 {
 	TLV* ret = new TLV();
-	ret->warning.message = message;
+	ret->warning.message = new char[length];
+	memcpy(ret->warning.message, message, length);
 	ret->warning.length = length;
 	return ret;
 }
 
-
+void pushTLVToSend(TLV* tlv)
+{
+	//TODO
+}
 
 int encodeTLV(TLV* tlv, int type, char* outData)
 {

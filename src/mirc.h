@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "tlv.h"
 
+extern UUID myId;
+
 /*Définitions du protocole*/
 #define MIRC_MAGIC			95
 
@@ -23,6 +25,9 @@
 #define TLV_GOAWAY_QUIT			1
 #define TLV_GOAWAY_IDLE			2
 #define TLV_GOAWAY_VIOLATION	3
+
+/*Assez souvent, on envoie les TLV neighbour à nos voisins*/
+#define NEIGHBOUR_FLOODING_DELAY	MINUTE 
 
 char* mircstrerror(int code);
 
@@ -79,10 +84,16 @@ TLV* tlvPadN(unsigned char len);
 
 TLV* tlvGoAway(char code,
 	unsigned char messageLength,
-	char* message);
+	const char* message);
 
 TLV* tlvWarning(unsigned char length,
-	char* message);
+	const char* message);
+
+/// <summary>
+/// Place le TLV dans la file de données à envoyer.
+/// </summary>
+/// <param name="tlv"></param>
+void pushTLVToSend(TLV* tlv);
 
 /// <summary>
 /// Encode le TLV dans outData (non alloué avant l'appel), et renvoie
