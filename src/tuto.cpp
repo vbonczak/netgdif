@@ -6,15 +6,15 @@ void serveur()
 	char host[NI_MAXHOST];
 	char service[NI_MAXSERV];
 
-	/*Connexion à la socket*/
+	/*Connexion Ã  la socket*/
 	int fd = NewSocket(AF_INET, SOCK_DGRAM, 0, (struct sockaddr*)&servaddr);
 	if (fd < 0)
 	{
-		perror("Problème de création de connexion.");
+		perror("ProblÃ¨me de crÃ©ation de connexion.");
 		exit(2);
 	}
 
-	/*Coordonnées du serveur*/
+	/*CoordonnÃ©es du serveur*/
 	memset(host, 0, NI_MAXHOST);
 	memset(service, 0, NI_NAMEREQD);
 	if (getnameinfo((struct sockaddr*)&servaddr, sizeof(servaddr), host, NI_MAXHOST, service, NI_MAXSERV, NI_NAMEREQD))
@@ -67,13 +67,13 @@ void client(int argc, char* argv[])
 
 	sendto(fd, argv[3], strlen(argv[3]), 0, (struct sockaddr*)&servaddr, ls);
 
-	/*Réception (attente) de la réponse*/
+	/*RÃ©ception (attente) de la rÃ©ponse*/
 	memset(response, 0, 1024);
 	recvfrom(fd, response, 1024, 0, (struct sockaddr*)&servaddr, &ls);
 
 	/*Sortie*/
 	write(STDOUT_FILENO, response, 1024);
 
-	printf("Réponse du serveur : %s\n", response);
+	printf("RÃ©ponse du serveur : %s\n", response);
 
 }

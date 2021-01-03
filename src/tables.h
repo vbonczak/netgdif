@@ -80,7 +80,7 @@ extern unordered_map<ADDRESS, UUID, ADDRESSHash> TVP;
 extern unordered_map<ADDRESS, INFOPAIR, ADDRESSHash> TVA;
 
 /// <summary>
-/// Les données récemment reçues (uniquement pour les TLV DATA).
+/// Les donnÃ©es rÃ©cemment reÃ§ues (uniquement pour les TLV DATA).
 /// </summary>
 extern unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 

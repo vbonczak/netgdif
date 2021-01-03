@@ -10,19 +10,19 @@ void Table_HelloFrom(ADDRESS addr, TLV* helloTLV)
 {
 	if (TVP.find(addr) != TVP.end())
 	{
-		copyUUID(helloTLV->hello.sourceID, TVP[addr]);
+		copyUUID(helloTLV->content.hello.sourceID, TVP[addr]);
 	}
 
 	int time = GetTime();
 	if (TVA.find(addr) == TVA.end())
 	{
 		TVA[addr] = INFOPAIR();
-		copyUUID(helloTLV->hello.sourceID, TVA[addr].id);
-		if (helloTLV->hello.longFormat)
+		copyUUID(helloTLV->content.hello.sourceID, TVA[addr].id);
+		if (helloTLV->content.hello.longFormat)
 		{
-			if (equalsUUID(myId, helloTLV->hello.destID))
+			if (equalsUUID(myId, helloTLV->content.hello.destID))
 			{
-				//Symétrique
+				//SymÃ©trique
 				TVA[addr].symmetrical = true;
 			}
 		}
@@ -30,7 +30,7 @@ void Table_HelloFrom(ADDRESS addr, TLV* helloTLV)
 			TVA[addr].lastHello16Date = 0;
 	}
 	TVA[addr].lastHelloDate = time;
-	if (helloTLV->hello.longFormat)
+	if (helloTLV->content.hello.longFormat)
 	{
 		TVA[addr].lastHello16Date = time;
 	}
@@ -44,7 +44,7 @@ void Table_RefreshTVA()
 	{
 		if (time - entry.second.lastHelloDate > 2 * MINUTE)
 		{
-			//Supprimé de cette table si reçu aucun hello depuis deux minutes
+			//SupprimÃ© de cette table si reÃ§u aucun hello depuis deux minutes
 			toRemove.push_back(entry.first);
 			string message = "Inactif depuis 2 minutes";
 			//Code 2
@@ -52,7 +52,7 @@ void Table_RefreshTVA()
 		}
 		else if (time - entry.second.lastHello16Date > 2 * MINUTE)
 		{
-			//Non symétrique si pas reçu de long hello depuis deux minutes
+			//Non symÃ©trique si pas reÃ§u de long hello depuis deux minutes
 			entry.second.symmetrical = false;
 		}
 	}

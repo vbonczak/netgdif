@@ -87,6 +87,11 @@ int RandomInt(int min, int max)
 	return (rand() % (max - min)) + min;
 }
 
+unsigned int GetNonce(string message)
+{
+	return int(hash<string>()(message + to_string(GetTime())) & 0xffffffff);
+}
+
 int GetTime()
 {
 	using namespace std::chrono;

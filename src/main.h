@@ -4,10 +4,15 @@
 #include <signal.h>
 #include "unistd.h"
 #include "mirc.h"
+#include <thread>
 
 bool quit = false;
 typedef void handler_t(int);
 using namespace std;
+
+void parseLine(string line);
+
+void sendMessage(string msg);
 
 ADDRESS mapIPv4(sockaddr_in* addr);
 

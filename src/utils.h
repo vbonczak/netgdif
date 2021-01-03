@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <string>
 #include <signal.h>
 #include <arpa/inet.h>
 #include <chrono>
@@ -29,7 +30,7 @@ void verbose(char* msg);
 #define MINUTE	60000
 
 /// <summary>
-/// Millisecondes depuis le début de l'exécution.
+/// Millisecondes depuis le dÃ©but de l'exÃ©cution.
 /// </summary>
 /// <returns></returns>
 int GetTime();
@@ -60,5 +61,12 @@ unsigned short ShortToNetwork(unsigned short localshort);
 char* RandomBytes(int size);
 
 int RandomInt(int min, int max);
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="message"></param>
+/// <returns></returns>
+unsigned int GetNonce(string message);
 
 #endif

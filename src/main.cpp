@@ -1,7 +1,7 @@
 #include "main.h"
 #include "tuto.h"
 
-
+string nickname;
 
 int main(int argc, char* argv[])
 {
@@ -9,6 +9,63 @@ int main(int argc, char* argv[])
 	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
 		return EXIT_FAILURE;
 
+	cout << "Entrez votre surnom : " << endl;
+	getline(cin, nickname);
+
+	thread back(background);
+
+	string line = "";
+
+	while (!quit)
+	{
+		getline(cin, line);
+		if (quit)
+			break;
+		if (!line.empty())
+		{
+			parseLine(line);
+		}
+
+		if (!cin)
+		{
+			quit = true;
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+void parseLine(string line)
+{
+	if (line[0] == '/')
+	{
+		string cmd;
+		int i = line.find_first_of(' ');
+		if (i == line.npos)
+			cmd = line;
+		else
+			cmd = line.substr(0, i);
+		i = line.find_first_not_of(' ', i);
+		line = line.substr(i);
+		if (cmd == "/nick")
+		{
+			nickname = line;
+			cout << "Le surnom a Ã©tÃ© changÃ© en '" << nickname << "'." << endl;
+		}
+	}
+	else
+	{
+		sendMessage(nickname + " : " + line);
+	}
+}
+
+void sendMessage(string msg)
+{
+	pushTLVToSend(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
+}
+
+void background()
+{
 	struct sockaddr_in6 servaddr;
 	int fd = setup((struct sockaddr_in*)&servaddr);
 
@@ -19,10 +76,11 @@ int main(int argc, char* argv[])
 	struct sockaddr_in6 client;
 	int time = 0;
 	int lastNeighbourSentTime = 0;
+
+
 	while (!quit)
 	{
 		time = GetTime();
-
 
 		memset(message, 0, 1024);
 		socklen_t len = sizeof(client);
@@ -39,8 +97,6 @@ int main(int argc, char* argv[])
 			lastNeighbourSentTime = time;
 		}
 	}
-
-	return EXIT_SUCCESS;
 }
 
 ADDRESS mapIPv4(struct sockaddr_in* addr)
@@ -88,8 +144,8 @@ void manageDatagram(MIRC_DGRAM& dgram, ADDRESS from)
 			manageWarnings(entry.second);
 			break;
 		default:
-			//en principe ils sont ignorés.
-			DEBUG("[LOGIC ERROR] Type de TLV ignoré dans la table.");
+			//en principe ils sont ignorÃ©s.
+			DEBUG("[LOGIC ERROR] Type de TLV ignorÃ© dans la table.");
 			break;
 		}
 	}
@@ -103,23 +159,45 @@ void manageHellos(list<TLV>& tlvs, ADDRESS from)
 
 void manageDatas(list<TLV>& tlvs)
 {
+	for (TLV tlv : tlvs)
+	{
+		tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
+		cout << "reÃ§u DATA : " << tlv.content.data.data << endl;
+	}
 }
 
 void manageAcks(list<TLV>& tlvs)
 {
+	for (TLV tlv : tlvs)
+	{
+		tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
+		cout << "reÃ§u DATA : " << tlv.content.data.data << endl;
+	}
 }
 
 void manageNeighbours(list<TLV>& tlvs)
 {
-
+	for (TLV tlv : tlvs)
+	{
+		cout << "reÃ§u NEIGHBOUR" << endl;
+	}
 }
 
 void manageGoAways(list<TLV>& tlvs)
 {
+	for (TLV tlv : tlvs)
+	{
+		cout << "reÃ§u GOAWAY : " << tlv.content.goAway.code << endl;
+	}
 }
 
 void manageWarnings(list<TLV>& tlvs)
 {
+	for (TLV tlv : tlvs)
+	{
+		tlv.content.data.data[tlv.content.warning.length - 1] = '\0';
+		cout << "Warning : " << tlv.content.warning.message << endl;
+	}
 }
 
 int setup(struct sockaddr_in* addr)
@@ -128,19 +206,19 @@ int setup(struct sockaddr_in* addr)
 	char host[NI_MAXHOST];
 	char service[NI_MAXSERV];
 
-	/*Connexion à la socket*/
+	/*Connexion Ã  la socket*/
 	int fd = NewSocket(AF_INET6, SOCK_DGRAM, 0, (struct sockaddr*)&servaddr);
 	if (fd < 0)
 	{
-		perror("Problème de création de connexion.");
+		perror("ProblÃ¨me de crÃ©ation de connexion.");
 		exit(2);
 	}
 
-	/*Coordonnées du serveur*/
+	/*CoordonnÃ©es du serveur*/
 	memset(host, 0, NI_MAXHOST);
 	memset(service, 0, NI_NAMEREQD);
 	if (getnameinfo((struct sockaddr*)&servaddr, sizeof(servaddr), host, NI_MAXHOST, service, NI_MAXSERV, NI_NAMEREQD))
-		printf("Serveur lancé à l'adresse %s:%d\n", host, ntohs(servaddr.sin_port));
+		printf("Serveur lancÃ© Ã  l'adresse %s:%d\n", host, ntohs(servaddr.sin_port));
 	else
 		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin_port));
 	*addr = servaddr;
@@ -168,11 +246,9 @@ int sigaction_wrapper(int signum, handler_t* handler) {
  */
 void sigint_handler(int sig)
 {
-
 	cout << endl << "Exiting." << endl;
-
+	 
 	quit = true;
-
 
 	return;
 }

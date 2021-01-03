@@ -15,7 +15,7 @@ bool tabEq(const char* a, const char* b, int size)
 	return true;
 }
 
-void copyUUID(	UUID from, UUID to)
+void copyUUID(UUID from, UUID to)
 {
 	memcpy(to, from, 8);
 }
@@ -32,21 +32,26 @@ MIRC_DGRAM dgramInit()
 	return ret;
 }
 
-void freeTLV(int type, TLV* tlv)
+void freeTLV(TLV* tlv)
 {
-	switch (type)
+	switch (tlv->type)
 	{ 
 	case TLV_DATA:
-		delete tlv->data.data;
+		delete tlv->content.data.data;
 		break;
 	case TLV_GOAWAY:
-		delete tlv->goAway.message;
+		delete tlv->content.goAway.message;
 		break;
 	case TLV_WARNING:
-		delete tlv->warning.message;
+		delete tlv->content.warning.message;
 		break;
 	default:
 		//Pas de bloc variable
 		break;
 	}
+}
+
+TLV_s::TLV_s(char t)
+{
+	type = t;
 }

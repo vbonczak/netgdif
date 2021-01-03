@@ -81,6 +81,14 @@ typedef union
 	TLVAck ack;
 	TLVGoAway goAway;
 	TLVWarning warning;
+} TLV_data;
+
+typedef struct TLV_s
+{
+	char type;
+	TLV_data content;
+
+	TLV_s(char t);
 } TLV;
 
 /// <summary>
@@ -98,6 +106,5 @@ MIRC_DGRAM dgramInit();
 /// Ne supprime pas le TLV en tant que structure. S'il a été alloué sur le tas avec new/malloc, il devra
 /// être supprimé avec delete/free ensuite.
 /// </summary>
-/// <param name="type"></param>
 /// <param name="tlv"></param>
-void freeTLV(int type, TLV* tlv);
+void freeTLV(TLV* tlv);
