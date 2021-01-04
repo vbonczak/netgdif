@@ -3,9 +3,9 @@
 UUID myId;
 
 //TLVs à envoyer pour chaque voisin
-unordered_map<ADDRESS, list<TLV*>, ADDRESSHash> toSend;
+unordered_map<ADDRESS, list<TLV>, ADDRESSHash> toSend;
 
-list<TLV*> pendingForFlood; //liste accedée par les deux threads, sujette à mutex
+list<TLV> pendingForFlood; //liste accedée par les deux threads, sujette à mutex
 mutex pendingForFloodLock;
 
 //Nombre minimal de voisins symétriques
@@ -64,22 +64,22 @@ int parseTLVCollection(char* body, unsigned int sz, MIRC_DGRAM& content)
 			ret = parseTLV_PADN(body + 1, sz - 1, &length);
 			break;
 		case TLV_HELLO:
-			ret = parseTLV_Hello(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_Hello(body + 1, sz - 1, &length, cur);
 			break;
 		case TLV_NEIGHBOUR:
-			ret = parseTLV_Neighbour(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_Neighbour(body + 1, sz - 1, &length, cur);
 			break;
 		case TLV_DATA:
-			ret = parseTLV_Data(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_Data(body + 1, sz - 1, &length, cur);
 			break;
 		case TLV_ACK:
-			ret = parseTLV_ACK(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_ACK(body + 1, sz - 1, &length, cur);
 			break;
 		case TLV_GOAWAY:
-			ret = parseTLV_GoAway(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_GoAway(body + 1, sz - 1, &length, cur);
 			break;
 		case TLV_WARNING:
-			ret = parseTLV_Warning(body + 1, sz - 1, &length, &cur);
+			ret = parseTLV_Warning(body + 1, sz - 1, &length, cur);
 			break;
 		default:
 			length = body[1];
@@ -122,21 +122,21 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 	return 0;
 }
 
-int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
 
 	if (body[0] == 8) /*Format court*/
 	{
-		memcpy(tlv->hello.sourceID, body + 1, 8);
-		tlv->hello.longFormat = false;
+		memcpy(tlv.hello.sourceID, body + 1, 8);
+		tlv.hello.longFormat = false;
 	}
 	else if (body[0] == 16)
 	{
-		memcpy(tlv->hello.sourceID, body + 1, 8);
-		memcpy(tlv->hello.destID, body + 9, 8);
-		tlv->hello.longFormat = true;
+		memcpy(tlv.hello.sourceID, body + 1, 8);
+		memcpy(tlv.hello.destID, body + 9, 8);
+		tlv.hello.longFormat = true;
 
 	}
 	else
@@ -147,7 +147,7 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 	return 0;
 }
 
-int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
@@ -156,13 +156,13 @@ int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, 
 		return PARSE_EINVALID;
 
 	unsigned short port = ShortFromNetwork(*((unsigned short*)(body + 17)));
-	tlv->neighbour.port = port;
+	tlv.neighbour.port = port;
 	/*l'IP se situe de 1 à 16 inclus*/
-	memcpy(tlv->neighbour.addrIP, body + 1, 16);
+	memcpy(tlv.neighbour.addrIP, body + 1, 16);
 	return 0;
 }
 
-int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
@@ -172,17 +172,17 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
 
-	memcpy(tlv->data.senderID, body + 1, 8);
+	memcpy(tlv.data.senderID, body + 1, 8);
 	unsigned int nonce = IntFromNetwork(*(unsigned int*)(body + 9));
-	tlv->data.nonce = nonce;
-	tlv->data.dataLen = len - 12;
-	tlv->data.data = new char[len - 12];
-	memcpy(tlv->data.data, body + 13, len - 12);
+	tlv.data.nonce = nonce;
+	tlv.data.dataLen = len - 12;
+	tlv.data.data = new char[len - 12];
+	memcpy(tlv.data.data, body + 13, len - 12);
 
 	return 0;
 }
 
-int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
@@ -192,15 +192,15 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_da
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
 
-	memcpy(tlv->ack.senderID, body + 1, 8);
+	memcpy(tlv.ack.senderID, body + 1, 8);
 	unsigned int nonce = IntFromNetwork(*(unsigned int*)(body + 9));
 
-	tlv->ack.nonce = nonce;
+	tlv.ack.nonce = nonce;
 
 	return 0;
 }
 
-int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
@@ -210,15 +210,15 @@ int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV
 	if ((len < 1) || (len + 1 > sz))
 		return PARSE_EINVALID;
 
-	tlv->goAway.code = body[1];
-	tlv->goAway.message = new char[len - 1];
-	memcpy(tlv->goAway.message, body + 2, len - 1);
-	tlv->goAway.messageLength = len - 1;
+	tlv.goAway.code = body[1];
+	tlv.goAway.message = new char[len - 1];
+	memcpy(tlv.goAway.message, body + 2, len - 1);
+	tlv.goAway.messageLength = len - 1;
 
 	return 0;
 }
 
-int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv)
+int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
@@ -228,88 +228,88 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 	if (len + 1 > sz)
 		return PARSE_ETOOBIG;
 
-	tlv->warning.message = new char[len];
-	memcpy(tlv->warning.message, body + 1, len);
-	tlv->warning.length = len;
+	tlv.warning.message = new char[len];
+	memcpy(tlv.warning.message, body + 1, len);
+	tlv.warning.length = len;
 	return 0;
 }
 
-TLV* tlvHello(UUID sender)
+TLV tlvHello(UUID sender)
 {
-	TLV* ret = new TLV(TLV_HELLO);
-	copyUUID(sender, ret->content.hello.sourceID);
-	ret->content.hello.longFormat = false;
+	TLV ret(TLV_HELLO);
+	copyUUID(sender, ret.content.hello.sourceID);
+	ret.content.hello.longFormat = false;
 	return ret;
 }
 
-TLV* tlvHello(UUID sender, UUID dest)
+TLV tlvHello(UUID sender, UUID dest)
 {
-	TLV* ret = new TLV(TLV_HELLO);
-	copyUUID(sender, ret->content.hello.sourceID);
-	ret->content.hello.longFormat = true;
-	copyUUID(dest, ret->content.hello.destID);
+	TLV ret(TLV_HELLO);
+	copyUUID(sender, ret.content.hello.sourceID);
+	ret.content.hello.longFormat = true;
+	copyUUID(dest, ret.content.hello.destID);
 	return ret;
 }
 
-TLV* tlvNeighbour(char addrIP[16], unsigned short port)
+TLV tlvNeighbour(char addrIP[16], unsigned short port)
 {
-	TLV* ret = new TLV(TLV_NEIGHBOUR);
-	memcpy(ret->content.neighbour.addrIP, addrIP, 16);
-	ret->content.neighbour.port = port;
+	TLV ret(TLV_NEIGHBOUR);
+	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
+	ret.content.neighbour.port = port;
 	return ret;
 }
 
-TLV* tlvData(UUID senderID, const char* data, int length, int nonce)
+TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 {
-	TLV* ret = new TLV(TLV_DATA);
-	ret->content.data.data = new char[length];
-	memcpy(ret->content.data.data, data, length);
-	ret->content.data.dataLen = length;
-	ret->content.data.nonce = nonce; //*((unsigned int*)RandomBytes(sizeof(int)));
-	copyUUID(senderID, ret->content.data.senderID);
+	TLV ret(TLV_DATA);
+	ret.content.data.data = new char[length];
+	memcpy(ret.content.data.data, data, length);
+	ret.content.data.dataLen = length;
+	ret.content.data.nonce = nonce; //*((unsigned int*)RandomBytes(sizeof(int)));
+	copyUUID(senderID, ret.content.data.senderID);
 	return ret;
 }
 
-TLV* tlvAck(TLV* data)
+TLV tlvAck(TLV& data)
 {
-	TLV* ret = new TLV(TLV_ACK);
-	ret->content.ack.nonce = data->content.data.nonce;
-	copyUUID(data->content.data.senderID, ret->content.ack.senderID);
+	TLV ret(TLV_ACK);
+	ret.content.ack.nonce = data.content.data.nonce;
+	copyUUID(data.content.data.senderID, ret.content.ack.senderID);
 	return ret;
 }
 
-TLV* tlvPadN(unsigned char len)
+TLV tlvPadN(unsigned char len)
 {
-	TLV* ret = new TLV(TLV_PADN);
-	ret->content.padN.len = len;
-	ret->content.padN.MBZ = new char[len];
+	TLV ret(TLV_PADN);
+	ret.content.padN.len = len;
+	ret.content.padN.MBZ = new char[len];
 	for (int i = 0; i < len; i++)
 	{
-		ret->content.padN.MBZ[i] = 0;
+		ret.content.padN.MBZ[i] = 0;
 	}
 	return ret;
 }
 
-TLV* tlvGoAway(char code, unsigned char messageLength, const char* message)
+TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 {
-	TLV* ret = new TLV(TLV_GOAWAY);
-	ret->content.goAway.code = code;
-	ret->content.goAway.message = new char[messageLength];
-	memcpy(ret->content.goAway.message, message, messageLength);
-	ret->content.goAway.messageLength = messageLength;
+	TLV ret(TLV_GOAWAY);
+	ret.content.goAway.code = code;
+	ret.content.goAway.message = new char[messageLength];
+	memcpy(ret.content.goAway.message, message, messageLength);
+	ret.content.goAway.messageLength = messageLength;
 	return ret;
 }
 
-TLV* tlvWarning(unsigned char length, const char* message)
+TLV tlvWarning(unsigned char length, const char* message)
 {
-	TLV* ret = new TLV(TLV_WARNING);
-	ret->content.warning.message = new char[length];
-	memcpy(ret->content.warning.message, message, length);
-	ret->content.warning.length = length;
+	TLV ret(TLV_WARNING);
+	ret.content.warning.message = new char[length];
+	memcpy(ret.content.warning.message, message, length);
+	ret.content.warning.length = length;
 	return ret;
 }
 
-void pushTLVDATAToFlood(TLV* tlv)
+void pushTLVDATAToFlood(TLV tlv)
 {
 	pendingForFloodLock.lock();
 	pendingForFlood.push_back(tlv);
@@ -319,9 +319,9 @@ void pushTLVDATAToFlood(TLV* tlv)
 void pushPendingForFlood()
 {
 	pendingForFloodLock.lock();
-	for (TLV* tlv : pendingForFlood)
+	for (TLV tlv : pendingForFlood)
 	{
-		TLVData data = tlv->content.data;
+		TLVData data = tlv.content.data;
 		DATAID id;
 		
 		copyUUID(data.senderID, id.id);
@@ -337,12 +337,12 @@ void pushPendingForFlood()
 	pendingForFloodLock.unlock();
 }
 
-void pushTLVToSend(TLV* tlv, const ADDRESS& dest)
+void pushTLVToSend(TLV tlv, const ADDRESS& dest)
 {
 	toSend[dest].push_back(tlv);
 }
 
-void pushTLVToSend(TLV* tlv)
+void pushTLVToSend(TLV tlv)
 {
 	for (auto& entry : TVA)
 	{
@@ -352,7 +352,7 @@ void pushTLVToSend(TLV* tlv)
 
 void sendPendingTLVs(int fd, const ADDRESS& address)
 {
-	list<TLV*>& listSend = toSend[address];
+	list<TLV>& listSend = toSend[address];
 
 	char* buf = new char[1024];
 	char data[1024];
@@ -361,7 +361,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 
 	while (totalLength < 1024 && !listSend.empty())
 	{
-		TLV* cur = listSend.front();
+		TLV cur = listSend.front();
 
 		len = encodeTLV(cur, data);
 		if (totalLength + len > 1024)
@@ -398,10 +398,10 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 }
 
 
-int tlvLen(TLV* t)
+int tlvLen(TLV& t)
 {
-	TLV_data* tlv = &(t->content);
-	char type = t->type;
+	TLV_data* tlv = &(t.content);
+	char type = t.type;
 	int length = 0;
 
 	switch (type)
@@ -445,10 +445,10 @@ int tlvLen(TLV* t)
 	return length;
 }
 
-int encodeTLV(TLV* t, char* outData)
+int encodeTLV(TLV t, char* outData)
 {
-	TLV_data* tlv = &(t->content);
-	char type = t->type;
+	TLV_data* tlv = &(t.content);
+	char type = t.type;
 	int length = 0;
 	unsigned short curS;
 	unsigned int curI;

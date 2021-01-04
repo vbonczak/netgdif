@@ -10,12 +10,12 @@ unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 int MAX_RR = 250;
 int DATA_LIFETIME = 3 * MINUTE;
 
-void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV)
+void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
 	if (TVP.find(addr) != TVP.end())
 	{
 		//On identifie l'ID de notre voisin potentiel reçu de NEIGHBOUR précédemment
-		copyUUID(helloTLV->content.hello.sourceID, TVP[addr]);
+		copyUUID(helloTLV.content.hello.sourceID, TVP[addr]);
 	}
 
 	int time = GetTime();
@@ -23,10 +23,10 @@ void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV)
 	{
 		//Pas encore connu comme voisin actif
 		TVA[addr] = INFOPAIR();
-		copyUUID(helloTLV->content.hello.sourceID, TVA[addr].id);
-		if (helloTLV->content.hello.longFormat)
+		copyUUID(helloTLV.content.hello.sourceID, TVA[addr].id);
+		if (helloTLV.content.hello.longFormat)
 		{
-			if (equalsUUID(myId, helloTLV->content.hello.destID))
+			if (equalsUUID(myId, helloTLV.content.hello.destID))
 			{
 				//Symétrique
 				TVA[addr].symmetrical = true;
@@ -37,13 +37,13 @@ void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV)
 	}
 	//Mise à jour des instants de réception des hellos.
 	TVA[addr].lastHelloDate = time;
-	if (helloTLV->content.hello.longFormat && equalsUUID(myId, helloTLV->content.hello.destID))
+	if (helloTLV.content.hello.longFormat && equalsUUID(myId, helloTLV.content.hello.destID))
 	{
 		TVA[addr].lastHello16Date = time;
 	}
 }
 
-void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
+void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 {
 	//Uniquement de la part des voisins connus ET symétriques
 	if (TVA.find(from) == TVA.end())
@@ -51,7 +51,7 @@ void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
 	else if (!TVA[from].symmetrical)
 		return;
 
-	TLVData data = dataTLV->content.data;
+	TLVData data = dataTLV.content.data;
 	int time = GetTime();
 
 	//L'a t-on déjà reçu?
@@ -94,9 +94,9 @@ void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
 	}
 }
 
-void Table_ACKFrom(TLV ackTLV, ADDRESS& from)
+void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 {
-	TLVAck ack = ackTLV->content.ack;
+	TLVAck ack = ackTLV.content.ack;
 	DATAID i;
 	copyUUID(ack.senderID, i.id);
 	i.nonce = ack.nonce;
@@ -105,7 +105,7 @@ void Table_ACKFrom(TLV ackTLV, ADDRESS& from)
 		RR[i].toFlood.erase(from);
 		if (RR[i].toFlood.size() == 0)//Tous les destinataires ont aquitté la donnée
 		{
-			freeTLV(RR[i].tlv);
+			freeTLV(RR[i].tlv);//Suppression des champs réservés pour les données
 			RR.erase(i);
 		}
 	}

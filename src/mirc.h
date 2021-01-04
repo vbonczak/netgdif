@@ -72,34 +72,34 @@ ne pas inclure le type, déjà traité). le champ body contient donc le contenu
 du message brut (et le reste des données du datagramme).
 Elles renseignent également la taille consommée par le TLV.
 */
-int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data*);
-int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
-int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
-int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
+int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data&);
+int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv);
+int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv);
+int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv);
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength);
-int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
-int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
+int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv);
+int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv);
 
 /// <summary>
 /// Retourne un TLV de type Hello avec les paramètres spécifiés.
 /// </summary>
 /// <param name="sender"></param>
 /// <returns></returns>
-TLV* tlvHello(UUID sender);
+TLV tlvHello(UUID sender);
 /// <summary>
 /// Retourne un TLV de type Hello Long avec les paramètres spécifiés.
 /// </summary>
 /// <param name="sender"></param>
 /// <param name="dest"></param>
 /// <returns></returns>
-TLV* tlvHello(UUID sender, UUID dest);
+TLV tlvHello(UUID sender, UUID dest);
 /// <summary>
 /// Retourne un TLV neighbour
 /// </summary>
 /// <param name="addrIP"></param>
 /// <param name="port"></param>
 /// <returns></returns>
-TLV* tlvNeighbour(char addrIP[16], unsigned short port);
+TLV tlvNeighbour(char addrIP[16], unsigned short port);
 /// <summary>
 /// TLV data
 /// </summary>
@@ -108,20 +108,20 @@ TLV* tlvNeighbour(char addrIP[16], unsigned short port);
 /// <param name="length"></param>
 /// <param name="nonce"></param>
 /// <returns></returns>
-TLV* tlvData(UUID senderID, const char* data, int length, int nonce);
+TLV tlvData(UUID senderID, const char* data, int length, int nonce);
 /// <summary>
 /// Retourne un accusé de réception pour un TLV Data donné.
 /// </summary>
 /// <param name="data"></param>
 /// <returns></returns>
-TLV* tlvAck(TLV* data);
+TLV tlvAck(TLV& data);
 
 /// <summary>
 /// Retourne un TLV de remplissage
 /// </summary>
 /// <param name="len"></param>
 /// <returns></returns>
-TLV* tlvPadN(unsigned char len);
+TLV tlvPadN(unsigned char len);
 
 /// <summary>
 /// Retourne un TLV GoAway
@@ -130,7 +130,7 @@ TLV* tlvPadN(unsigned char len);
 /// <param name="messageLength"></param>
 /// <param name="message"></param>
 /// <returns></returns>
-TLV* tlvGoAway(char code,
+TLV tlvGoAway(char code,
 	unsigned char messageLength,
 	const char* message);
 
@@ -140,14 +140,14 @@ TLV* tlvGoAway(char code,
 /// <param name="length"></param>
 /// <param name="message"></param>
 /// <returns></returns>
-TLV* tlvWarning(unsigned char length,
+TLV tlvWarning(unsigned char length,
 	const char* message);
 
 /// <summary>
 /// Place un TLV de données dans la file d'attente de tous les voisins.
 /// </summary>
 /// <param name="tlv"></param>
-void pushTLVDATAToFlood(TLV* tlv);
+void pushTLVDATAToFlood(TLV tlv);
 
 /// <summary>
 /// Régulièrement appelée pour basculer les TLVs en attente en provenance du thread principal
@@ -159,13 +159,13 @@ void pushPendingForFlood();
 /// Place le TLV dans la file de données à envoyer.
 /// </summary>
 /// <param name="tlv"></param>
-void pushTLVToSend(TLV* tlv, const ADDRESS& dest);
+void pushTLVToSend(TLV tlv, const ADDRESS& dest);
 
 /// <summary>
 /// Place le TLV dans la file de données à envoyer à tous les voisins actifs.
 /// </summary>
 /// <param name="tlv"></param>
-void pushTLVToSend(TLV* tlv);
+void pushTLVToSend(TLV tlv);
 
 /// <summary>
 /// Envoie les TLV réservés au destinataire spécifié en attente.
@@ -174,7 +174,7 @@ void pushTLVToSend(TLV* tlv);
 /// <param name="address"></param>
 void sendPendingTLVs(int fd, const ADDRESS& address);
 
-int tlvLen(TLV* t);
+int tlvLen(TLV& t);
 
 /// <summary>
 /// Encode le TLV dans outData (alloué avant l'appel pour au moins 1Ko), et renvoie
@@ -183,7 +183,7 @@ int tlvLen(TLV* t);
 /// <param name="t"></param>
 /// <param name="outData"></param>
 /// <returns></returns>
-int encodeTLV(TLV* t, char* outData);
+int encodeTLV(TLV t, char* outData);
 
 void eraseFromSendList(const ADDRESS& a);
 #endif

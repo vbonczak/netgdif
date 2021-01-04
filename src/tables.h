@@ -43,7 +43,7 @@ typedef struct DATAID_s
 
 typedef struct
 {
-	TLV* tlv;
+	TLV tlv;
 	/// <summary>
 	/// table Id -> (nombre de fois où on lui a envoyé cette donnée, prochain instant d'envoi en ms)
 	/// </summary>
@@ -82,9 +82,9 @@ extern unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 /// </summary>
 /// <param name="addr"></param>
 /// <param name="helloTLV"></param>
-void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV);
-void Table_DataFrom(TLV* dataTLV, ADDRESS& from);
-void Table_ACKFrom(TLV* dataTLV, ADDRESS& from);
+void Table_HelloFrom(ADDRESS& addr, TLV helloTLV);
+void Table_DataFrom(TLV dataTLV, ADDRESS& from);
+void Table_ACKFrom(TLV& ackTLV, ADDRESS& from);
 
 /// <summary>
 /// Nettoyage des données anciennes

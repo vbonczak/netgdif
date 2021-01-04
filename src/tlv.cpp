@@ -24,18 +24,20 @@ MIRC_DGRAM dgramInit()
 	return ret;
 }
 
-void freeTLV(TLV tlv)
+void freeTLV(TLV& tlv)
 {
-	switch (tlv->type)
+	switch (tlv.type)
 	{
+	case TLV_PADN:
+		delete tlv.content.padN.MBZ;
 	case TLV_DATA:
-		delete tlv->content.data.data;
+		delete tlv.content.data.data;
 		break;
 	case TLV_GOAWAY:
-		delete tlv->content.goAway.message;
+		delete tlv.content.goAway.message;
 		break;
 	case TLV_WARNING:
-		delete tlv->content.warning.message;
+		delete tlv.content.warning.message;
 		break;
 	default:
 		//Pas de bloc variable
@@ -47,4 +49,8 @@ void freeTLV(TLV tlv)
 TLV_s::TLV_s(char t)
 {
 	type = t;
+}
+
+TLV_s::TLV_s()
+{
 }

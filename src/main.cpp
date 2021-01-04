@@ -228,7 +228,7 @@ void manageDatagram(MIRC_DGRAM& dgram, ADDRESS& from)
 void manageHellos(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
-		Table_HelloFrom(from, &tlv);
+		Table_HelloFrom(from, tlv);
 }
 
 void manageDatas(list<TLV>& tlvs, ADDRESS& from)
@@ -237,7 +237,7 @@ void manageDatas(list<TLV>& tlvs, ADDRESS& from)
 	{
 		//tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
 		//cout << "reçu DATA : " << tlv.content.data.data << endl;
-		Table_DataFrom(&tlv, from);
+		Table_DataFrom(tlv, from);
 	}
 }
 
@@ -245,7 +245,7 @@ void manageAcks(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
-		Table_ACKFrom(&tlv, from);
+		Table_ACKFrom(tlv, from);
 	}
 }
 
@@ -267,6 +267,7 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from)
 	for (TLV tlv : tlvs)
 	{
 		cout << "reçu GOAWAY : " << tlv.content.goAway.code << endl;
+		freeTLV(tlv);
 	}
 }
 
@@ -276,6 +277,7 @@ void manageWarnings(list<TLV>& tlvs)
 	{
 		tlv.content.data.data[tlv.content.warning.length - 1] = '\0';
 		cout << "Warning : " << tlv.content.warning.message << endl;
+		freeTLV(tlv);
 	}
 }
 
