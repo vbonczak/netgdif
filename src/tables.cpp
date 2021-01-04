@@ -7,7 +7,8 @@ unordered_map<ADDRESS, INFOPAIR, ADDRESSHash> TVA;
 
 unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 
-int MAX_RR = 100;
+int MAX_RR = 250;
+int DATA_LIFETIME = 3 * MINUTE;
 
 void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV)
 {
@@ -44,8 +45,15 @@ void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV)
 
 void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
 {
+	//Uniquement de la part des voisins connus ET symétriques
+	if (TVA.find(from) == TVA.end())
+		return;
+	else if (!TVA[from].symmetrical)
+		return;
+
 	TLVData data = dataTLV->content.data;
 	int time = GetTime();
+
 	//L'a t-on déjà reçu?
 	DATAID id;
 	copyUUID(data.senderID, id.id);
@@ -63,6 +71,7 @@ void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
 
 		//Puis on l'ajoute
 		DATAINFO info;
+		info.receptionTime = time;
 		info.tlv = dataTLV;
 		for (auto& entry : TVA)
 		{
@@ -85,13 +94,35 @@ void Table_DataFrom(TLV* dataTLV, ADDRESS& from)
 	}
 }
 
-void Table_ACKFrom(TLV* ackTLV, ADDRESS& from)
+void Table_ACKFrom(TLV ackTLV, ADDRESS& from)
 {
 	TLVAck ack = ackTLV->content.ack;
 	DATAID i;
 	copyUUID(ack.senderID, i.id);
 	i.nonce = ack.nonce;
-	RR[i].toFlood.erase(from);
+	if (RR.find(i) != RR.end())
+	{
+		RR[i].toFlood.erase(from);
+		if (RR[i].toFlood.size() == 0)//Tous les destinataires ont aquitté la donnée
+		{
+			freeTLV(RR[i].tlv);
+			RR.erase(i);
+		}
+	}
+}
+
+void Table_CleanRR()
+{
+	list<DATAID> toRemove;
+	int time = GetTime();
+	for (auto& entry : RR)
+	{
+		if (time - entry.second.receptionTime > DATA_LIFETIME)
+			toRemove.push_back(entry.first);
+	}
+
+	for (DATAID i : toRemove)
+		RR.erase(i);
 }
 
 void Table_RefreshTVA()
@@ -167,7 +198,7 @@ void Flood()
 			if (dest.second.first >= 5)
 			{
 				//Mort ou très lent, envoi de GoAway de code 2
-				pushTLVToSend(tlvGoAway(TLV_GOAWAY_IDLE, 10, "Très lent"));
+				pushTLVToSend(tlvGoAway(TLV_GOAWAY_IDLE, 11, "Très lent"));
 				//Retirer de la table des actifs
 				eraseFromTVA(dest.first);
 			}
@@ -177,11 +208,12 @@ void Flood()
 				//dest.second = paire (nombre de réémissions, instant d'envoi prévu)
 				if (time >= dest.second.second)
 				{
+					//On l'envoie
 					pushTLVToSend(info.tlv, dest.first);
 					info.toFlood[dest.first] = { dest.second.first + 1,
-						time + RandomInt(
-							1000 * (1 << (dest.second.first - 1)),
-							1000 * (1 << dest.second.first)) };
+						time + RandomInt(//entre 2^n et 2^{n+1}
+							1000 * (1 << (dest.second.first)),
+							1000 * (1 << (dest.second.first + 1))) };
 				}
 			}
 		}

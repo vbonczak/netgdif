@@ -83,6 +83,9 @@ void background()
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
+	int lastCleanedTime = 0;
+	//Instant de dernier envoi (éviter de surcharger le destinataire)
+	int lastSendTime;
 	thread* receiver;
 	while (!quit)
 	{
@@ -115,21 +118,29 @@ void background()
 			lastNeighbourSentTime = time;
 		}
 
+		//Toutes les 30sec, on nettoie les données reçues
+		if (time - lastCleanedTime > 30000)
+		{
+			Table_CleanRR();
+			lastCleanedTime = time;
+		}
+
 		//Mise à jour de la liste des voisins actifs
 		Table_RefreshTVA();
 		//Remplissage des messages de l'utilisateur courant
 		pushPendingForFlood();
 
-		//Envoi effectif des paquets UDP vers leurs destinataires respectifs.
-		for (auto& entry : TVA)
+		if (time - lastSendTime > 5000)
 		{
-			sendPendingTLVs(fd, entry.first);
+			lastSendTime = time;
+			//Envoi effectif des paquets UDP vers leurs destinataires respectifs.
+			for (auto& entry : TVA)
+			{
+				sendPendingTLVs(fd, entry.first);
+			}
 		}
-
 		sleep(1);
 	}
-
-
 
 	shutdown(fd, SHUT_RDWR);
 

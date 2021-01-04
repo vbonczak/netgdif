@@ -24,10 +24,8 @@ MIRC_DGRAM dgramInit()
 	return ret;
 }
 
-void freeTLV(TLV* tlv)
+void freeTLV(TLV tlv)
 {
-	if (tlv->freed)
-		return;
 	switch (tlv->type)
 	{
 	case TLV_DATA:
@@ -43,11 +41,10 @@ void freeTLV(TLV* tlv)
 		//Pas de bloc variable
 		break;
 	}
-	tlv->freed = true;
+
 }
 
 TLV_s::TLV_s(char t)
 {
 	type = t;
-	freed = false;
 }

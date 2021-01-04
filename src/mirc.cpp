@@ -4,8 +4,7 @@ UUID myId;
 
 //TLVs à envoyer pour chaque voisin
 unordered_map<ADDRESS, list<TLV*>, ADDRESSHash> toSend;
-//Instant de dernier envoi (éviter de surcharger le destinataire)
-unordered_map<ADDRESS, int, ADDRESSHash> lastSendTimes;
+
 list<TLV*> pendingForFlood; //liste accedée par les deux threads, sujette à mutex
 mutex pendingForFloodLock;
 
@@ -324,11 +323,13 @@ void pushPendingForFlood()
 	{
 		TLVData data = tlv->content.data;
 		DATAID id;
+		
 		copyUUID(data.senderID, id.id);
 		id.nonce = data.nonce;
 		for (auto& voisins : TVA)
 		{
 			RR[id].tlv = tlv;
+			RR[id].receptionTime = GetTime();
 			RR[id].toFlood[voisins.first] = { 0, GetTime() + RandomInt(0,1000) };
 		}
 	}
@@ -352,16 +353,7 @@ void pushTLVToSend(TLV* tlv)
 void sendPendingTLVs(int fd, const ADDRESS& address)
 {
 	list<TLV*>& listSend = toSend[address];
-	int time = GetTime();
 
-
-	if (time - lastSendTimes[address] < 10000)
-	{
-		//10 sec, on attend encore
-		return;
-	}//On envoie sinon
-
-	lastSendTimes[address] = time;
 	char* buf = new char[1024];
 	char data[1024];
 	int totalLength = 0;

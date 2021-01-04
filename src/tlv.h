@@ -85,7 +85,7 @@ typedef struct TLV_s
 {
 	char type;
 	TLV_data content;
-	bool freed;
+	
 	TLV_s(char t);
 } TLV;
 
@@ -105,4 +105,4 @@ MIRC_DGRAM dgramInit();
 /// être supprimé avec delete/free ensuite.
 /// </summary>
 /// <param name="tlv"></param>
-void freeTLV(TLV* tlv);
+void freeTLV(TLV tlv);

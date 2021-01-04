@@ -48,6 +48,8 @@ typedef struct
 	/// table Id -> (nombre de fois où on lui a envoyé cette donnée, prochain instant d'envoi en ms)
 	/// </summary>
 	unordered_map<ADDRESS, pair<int, int>, ADDRESSHash> toFlood;
+
+	int receptionTime;
 } DATAINFO;
 
 
@@ -83,6 +85,11 @@ extern unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV);
 void Table_DataFrom(TLV* dataTLV, ADDRESS& from);
 void Table_ACKFrom(TLV* dataTLV, ADDRESS& from);
+
+/// <summary>
+/// Nettoyage des données anciennes
+/// </summary>
+void Table_CleanRR();
 
 /// <summary>
 /// S'occupe de savoir si les voisins sont symétriques ou pas, et si on doit envoyer

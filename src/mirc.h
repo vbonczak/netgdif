@@ -80,20 +80,66 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength);
 int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
 int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data* tlv);
 
-
-
+/// <summary>
+/// Retourne un TLV de type Hello avec les paramètres spécifiés.
+/// </summary>
+/// <param name="sender"></param>
+/// <returns></returns>
 TLV* tlvHello(UUID sender);
+/// <summary>
+/// Retourne un TLV de type Hello Long avec les paramètres spécifiés.
+/// </summary>
+/// <param name="sender"></param>
+/// <param name="dest"></param>
+/// <returns></returns>
 TLV* tlvHello(UUID sender, UUID dest);
-
+/// <summary>
+/// Retourne un TLV neighbour
+/// </summary>
+/// <param name="addrIP"></param>
+/// <param name="port"></param>
+/// <returns></returns>
 TLV* tlvNeighbour(char addrIP[16], unsigned short port);
+/// <summary>
+/// TLV data
+/// </summary>
+/// <param name="senderID"></param>
+/// <param name="data"></param>
+/// <param name="length"></param>
+/// <param name="nonce"></param>
+/// <returns></returns>
 TLV* tlvData(UUID senderID, const char* data, int length, int nonce);
+/// <summary>
+/// Retourne un accusé de réception pour un TLV Data donné.
+/// </summary>
+/// <param name="data"></param>
+/// <returns></returns>
 TLV* tlvAck(TLV* data);
+
+/// <summary>
+/// Retourne un TLV de remplissage
+/// </summary>
+/// <param name="len"></param>
+/// <returns></returns>
 TLV* tlvPadN(unsigned char len);
 
+/// <summary>
+/// Retourne un TLV GoAway
+/// </summary>
+/// <param name="code"></param>
+/// <param name="messageLength"></param>
+/// <param name="message"></param>
+/// <returns></returns>
 TLV* tlvGoAway(char code,
 	unsigned char messageLength,
 	const char* message);
 
+/// <summary>
+/// Retourne un TLV Warning
+/// </summary>
+/// <param name="length"></param>
+/// <param name="message"></param>
+/// <returns></returns>
 TLV* tlvWarning(unsigned char length,
 	const char* message);
 
@@ -121,6 +167,11 @@ void pushTLVToSend(TLV* tlv, const ADDRESS& dest);
 /// <param name="tlv"></param>
 void pushTLVToSend(TLV* tlv);
 
+/// <summary>
+/// Envoie les TLV réservés au destinataire spécifié en attente.
+/// </summary>
+/// <param name="fd"></param>
+/// <param name="address"></param>
 void sendPendingTLVs(int fd, const ADDRESS& address);
 
 int tlvLen(TLV* t);
