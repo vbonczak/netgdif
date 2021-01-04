@@ -1,7 +1,16 @@
 #include "main.h"
 #include "tuto.h"
 
+/*Quelques variables globales*/
+
+//Le surnom
 string nickname;
+
+//Gestion de reception des paquets en parallèle, pour éviter un blocage
+char rawUDP[1024];
+int rawUDP_len = 0;
+bool rawUDP_read = true;
+bool receiving = false;
 
 int main(int argc, char* argv[])
 {
@@ -31,6 +40,8 @@ int main(int argc, char* argv[])
 			quit = true;
 		}
 	}
+
+	back.join();
 
 	return EXIT_SUCCESS;
 }
@@ -67,36 +78,68 @@ void sendMessage(string msg)
 void background()
 {
 	struct sockaddr_in6 servaddr;
-	int fd = setup((struct sockaddr_in*)&servaddr);
+	int fd = setup(&servaddr);
 
 	copyUUID(RandomBytes(8), myId);
 
-	/*Boucle de service*/
-	char message[1024];
-	struct sockaddr_in6 client;
 	int time = 0;
 	int lastNeighbourSentTime = 0;
-
-
+	thread* receiver;
 	while (!quit)
 	{
+		cout << "tour de boucle" << endl;
 		time = GetTime();
 
-		memset(message, 0, 1024);
-		socklen_t len = sizeof(client);
-		recvfrom(fd, message, 1024, 0, (struct sockaddr*)&client, &len);
+		if (!receiving)
+		{
+			//Lance un receveur
+			receiver = new thread(receive, fd);
+			receiving = true;
+		}
 
-		MIRC_DGRAM dgram;
-		parseDatagram(message, 1024, dgram);
+		if (!rawUDP_read)
+		{
+			//le receveur a rempli le paquet
+			receiver->join();
+			delete receiver;
 
-		manageDatagram(dgram, mapIPv4((struct sockaddr_in*)&client));
+			MIRC_DGRAM dgram;
+			parseDatagram(rawUDP, rawUDP_len, dgram);
+
+			manageDatagram(dgram, mapIPv4((struct sockaddr_in*)&client));
+			rawUDP_read = true; //nous l'avons lu
+		}
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
 			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
 			lastNeighbourSentTime = time;
 		}
+
+		
+		sleep(1);
 	}
+
+
+
+	shutdown(fd, SHUT_RDWR);
+
+	receiver->join();
+
+	close(fd);
+}
+
+
+
+void receive(int fd)
+{
+	struct sockaddr_in6 client;
+	socklen_t len = sizeof(client);
+	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)&client, &len);
+	if (rawUDP_len > 0)
+		rawUDP_read = false;
+
+	receiving = false;
 }
 
 ADDRESS mapIPv4(struct sockaddr_in* addr)
@@ -200,9 +243,9 @@ void manageWarnings(list<TLV>& tlvs)
 	}
 }
 
-int setup(struct sockaddr_in* addr)
+int setup(struct sockaddr_in6* addr)
 {
-	struct sockaddr_in servaddr;
+	struct sockaddr_in6 servaddr;
 	char host[NI_MAXHOST];
 	char service[NI_MAXSERV];
 
@@ -218,9 +261,16 @@ int setup(struct sockaddr_in* addr)
 	memset(host, 0, NI_MAXHOST);
 	memset(service, 0, NI_NAMEREQD);
 	if (getnameinfo((struct sockaddr*)&servaddr, sizeof(servaddr), host, NI_MAXHOST, service, NI_MAXSERV, NI_NAMEREQD))
-		printf("Serveur lancé à l'adresse %s:%d\n", host, ntohs(servaddr.sin_port));
+	{
+		char* dst = new char[100];
+		socklen_t len = sizeof(servaddr);
+		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
+			cout << strerror(errno) << endl;
+		
+		printf("Serveur lancé à l'adresse %s:%d\n", dst, ntohs(servaddr.sin6_port));
+	}
 	else
-		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin_port));
+		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin6_port));
 	*addr = servaddr;
 	return fd;
 }
@@ -246,8 +296,8 @@ int sigaction_wrapper(int signum, handler_t* handler) {
  */
 void sigint_handler(int sig)
 {
-	cout << endl << "Exiting." << endl;
-	 
+	cout << endl << "Exiting. You may have to type enter again." << endl;
+
 	quit = true;
 
 	return;

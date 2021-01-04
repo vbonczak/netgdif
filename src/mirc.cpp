@@ -4,6 +4,10 @@ UUID myId;
 
 list<TLV*> toSend;
 
+/*Longueur approximative de données dans la file à envoyer*/
+int curLength = 0;
+int lastSendTime = 0;
+
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {
 	if (length <= 3)
@@ -302,17 +306,30 @@ TLV* tlvWarning(unsigned char length, const char* message)
 	return ret;
 }
 
+
+
 void pushTLVToSend(TLV* tlv)
 {
 	toSend.push_back(tlv);
+	curLength += tlvLen(tlv);
 }
 
 void sendPendingTLVs(int fd, struct sockaddr_in6* destaddr)
 {
+	if (curLength < 1000)
+	{
+		//File non pleine, le datagramme sera utilisé inefficacement : quand était le dernier envoi ?
+		if (GetTime() - lastSendTime < 10000)
+		{
+			//10 sec, on attend encore
+			return;
+		}//On envoie sinon
+	}
 	char* buf = new char[1024];
 	char data[1024];
 	int totalLength = 0;
 	int len = 0;
+
 	while (totalLength < 1024 && !toSend.empty())
 	{
 		TLV* cur = toSend.front();
@@ -343,9 +360,57 @@ void sendPendingTLVs(int fd, struct sockaddr_in6* destaddr)
 		memcpy(buf + totalLength, data, len);
 		break;
 	}
-
+	curLength -= totalLength;
 	socklen_t l = sizeof(*destaddr);
 	sendto(fd, buf, 1024, 0, (struct sockaddr*)destaddr, l);
+}
+
+
+int tlvLen(TLV* t)
+{
+	TLV_data* tlv = &(t->content);
+	char type = t->type;
+	int length = 0;
+
+	switch (type)
+	{
+	case TLV_PAD1:
+		length = 1;
+		break;
+	case TLV_PADN:
+		length = 2 + tlv->padN.len;
+		break;
+	case TLV_HELLO:
+		if (tlv->hello.longFormat)
+		{
+			length = 18;
+		}
+		else
+		{
+			length = 10;
+		}
+		break;
+	case TLV_NEIGHBOUR:
+		length = 20;
+		break;
+	case TLV_DATA:
+		length = 14 + tlv->data.dataLen;
+		break;
+	case TLV_ACK:
+		length = 14;
+		break;
+	case TLV_GOAWAY:
+		length = 3 + tlv->goAway.messageLength;
+		break;
+	case TLV_WARNING:
+		length = 2 + tlv->warning.length;
+		break;
+	default:
+		length = 0;
+		break;
+	}
+
+	return length;
 }
 
 int encodeTLV(TLV* t, char* outData)
@@ -361,6 +426,7 @@ int encodeTLV(TLV* t, char* outData)
 		length = 1;
 		break;
 	case TLV_PADN:
+		length = 2 + tlv->padN.len;
 		memcpy(outData + 2, tlv->padN.MBZ, tlv->padN.len);
 		outData[1] = (char)tlv->padN.len;
 		break;

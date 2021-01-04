@@ -49,11 +49,13 @@ void Table_RefreshTVA()
 			string message = "Inactif depuis 2 minutes";
 			//Code 2
 			pushTLVToSend(tlvGoAway(TLV_GOAWAY_IDLE, message.size(), message.c_str()));
+			DEBUG("TVA : Envoyé goaway code 2");
 		}
 		else if (time - entry.second.lastHello16Date > 2 * MINUTE)
 		{
 			//Non symétrique si pas reçu de long hello depuis deux minutes
 			entry.second.symmetrical = false;
+			DEBUG("TVA : Voisin marqué non symétrique");
 		}
 	}
 }

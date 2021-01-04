@@ -49,8 +49,10 @@ typedef struct DATAID_s
 typedef struct
 {
 	TLV* tlv;
-	char sentCount;
-	list<UUID*> toFlood;
+	/// <summary>
+	/// table Id -> nombre de fois où on lui a envoyé cette donnée
+	/// </summary>
+	map<UUID*, int> toFlood;
 } DATAINFO;
 
 struct ADDRESSHash

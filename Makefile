@@ -6,6 +6,8 @@ DEPS := $(OBJ:.o=.d)
 
 CXXFLAGS += -MMD -MP -Wno-write-strings
 
+LIBS = -lpthread 
+
 all: CXXFLAGS += -g
 all: netgdif
 

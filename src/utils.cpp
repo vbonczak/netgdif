@@ -2,7 +2,7 @@
 
 int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 {
-	int fd = socket(domain, type, 0);
+	int fd = socket(domain, type, IPPROTO_UDP);
 
 	if (fd < 0)
 	{
@@ -36,7 +36,7 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 	{
 		struct sockaddr_in6 addr;
 		len_p_addr = sizeof(struct sockaddr_in6);
-		memset(&addr, 0, len_p_addr);
+		memset(&addr, 0, len_p_addr); //INADDR_ANY
 		addr.sin6_family = AF_INET6;
 		addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
@@ -101,13 +101,14 @@ int GetTime()
 	return (int)time_span.count();
 }
 
-
-#ifdef VERBOSE
 void InitUtils()
 {
 	srand(static_cast<unsigned int>(time(NULL)));
 }
-void verbose(char* msg) { printf("DEBUG : %s", msg); }
+
+#ifdef VERBOSE
+
+void verbose(string msg) { cout << "DEBUG : " << msg << endl; }
 
 
 

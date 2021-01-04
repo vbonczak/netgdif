@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <iostream>
 #include <string>
 #include <signal.h>
 #include <arpa/inet.h>
@@ -22,7 +23,7 @@ void InitUtils();
 
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
-void verbose(char* msg);
+void verbose(string msg);
 #else
 #define DEBUG(x)	 
 #endif

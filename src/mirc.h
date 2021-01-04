@@ -96,6 +96,10 @@ TLV* tlvWarning(unsigned char length,
 /// <param name="tlv"></param>
 void pushTLVToSend(TLV* tlv);
 
+void sendPendingTLVs(int fd, sockaddr_in6* destaddr);
+
+int tlvLen(TLV* t);
+
 /// <summary>
 /// Encode le TLV dans outData (alloué avant l'appel pour au moins 1Ko), et renvoie
 /// la taille de ces données.
