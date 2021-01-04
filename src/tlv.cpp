@@ -1,26 +1,16 @@
 #include "tlv.h"
-
+#include "utils.h"
 bool equalsUUID(const UUID a, const UUID b)
 {
 	return tabEq(a, b, 8);
 }
 
-bool tabEq(const char* a, const char* b, int size)
-{
-	for (int i = 0; i < size; i++)
-	{
-		if (a[i] != b[i])
-			return false;
-	}
-	return true;
-}
+
 
 void copyUUID(UUID from, UUID to)
 {
 	memcpy(to, from, 8);
 }
-
-
 
 MIRC_DGRAM dgramInit()
 {
@@ -36,6 +26,8 @@ MIRC_DGRAM dgramInit()
 
 void freeTLV(TLV* tlv)
 {
+	if (tlv->freed)
+		return;
 	switch (tlv->type)
 	{
 	case TLV_DATA:
@@ -51,9 +43,11 @@ void freeTLV(TLV* tlv)
 		//Pas de bloc variable
 		break;
 	}
+	tlv->freed = true;
 }
 
 TLV_s::TLV_s(char t)
 {
 	type = t;
+	freed = false;
 }

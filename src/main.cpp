@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
 	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
 		return EXIT_FAILURE;
 
+	copyUUID(RandomBytes(8), myId);
 	cout << "Entrez votre surnom : " << endl;
 	getline(cin, nickname);
 
@@ -72,15 +73,13 @@ void parseLine(string line)
 
 void sendMessage(string msg)
 {
-	pushTLVToSend(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
+	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
 }
 
 void background()
 {
 	struct sockaddr_in6 servaddr;
 	int fd = setup(&servaddr);
-
-	copyUUID(RandomBytes(8), myId);
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -105,8 +104,8 @@ void background()
 
 			MIRC_DGRAM dgram;
 			parseDatagram(rawUDP, rawUDP_len, dgram);
-
-			manageDatagram(dgram, mapIPv4((struct sockaddr_in*)&client));
+			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
+			manageDatagram(dgram, ad);
 			rawUDP_read = true; //nous l'avons lu
 		}
 
@@ -116,7 +115,17 @@ void background()
 			lastNeighbourSentTime = time;
 		}
 
-		
+		//Mise à jour de la liste des voisins actifs
+		Table_RefreshTVA();
+		//Remplissage des messages de l'utilisateur courant
+		pushPendingForFlood();
+
+		//Envoi effectif des paquets UDP vers leurs destinataires respectifs.
+		for (auto& entry : TVA)
+		{
+			sendPendingTLVs(fd, entry.first);
+		}
+
 		sleep(1);
 	}
 
@@ -142,7 +151,7 @@ void receive(int fd)
 	receiving = false;
 }
 
-ADDRESS mapIPv4(struct sockaddr_in* addr)
+ADDRESS mapIP(struct sockaddr_in* addr)
 {
 	ADDRESS ret;
 
@@ -159,10 +168,21 @@ ADDRESS mapIPv4(struct sockaddr_in* addr)
 		memcpy(ret.addrIP, (char*)(((struct sockaddr_in6*)addr)->sin6_addr.s6_addr), 16);
 	}
 	ret.port = addr->sin_port;
+	//On conserve l'adresse native pour aller plus vite
+	ret.nativeAddr = *((struct sockaddr_in6*)addr);
 	return ret;
 }
 
-void manageDatagram(MIRC_DGRAM& dgram, ADDRESS from)
+struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
+{
+	struct sockaddr_in6 ret;
+
+	memcpy(ret.sin6_addr.s6_addr, ipv6, 16);
+	ret.sin6_port = port;
+	return ret;
+}
+
+void manageDatagram(MIRC_DGRAM& dgram, ADDRESS& from)
 {
 	for (auto& entry : dgram)
 	{
@@ -175,13 +195,13 @@ void manageDatagram(MIRC_DGRAM& dgram, ADDRESS from)
 			manageNeighbours(entry.second);
 			break;
 		case TLV_DATA:
-			manageDatas(entry.second);
+			manageDatas(entry.second, from);
 			break;
 		case TLV_ACK:
-			manageAcks(entry.second);
+			manageAcks(entry.second, from);
 			break;
 		case TLV_GOAWAY:
-			manageGoAways(entry.second);
+			manageGoAways(entry.second, from);
 			break;
 		case TLV_WARNING:
 			manageWarnings(entry.second);
@@ -194,27 +214,27 @@ void manageDatagram(MIRC_DGRAM& dgram, ADDRESS from)
 	}
 }
 
-void manageHellos(list<TLV>& tlvs, ADDRESS from)
+void manageHellos(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 		Table_HelloFrom(from, &tlv);
 }
 
-void manageDatas(list<TLV>& tlvs)
+void manageDatas(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
-		tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
-		cout << "reçu DATA : " << tlv.content.data.data << endl;
+		//tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
+		//cout << "reçu DATA : " << tlv.content.data.data << endl;
+		Table_DataFrom(&tlv, from);
 	}
 }
 
-void manageAcks(list<TLV>& tlvs)
+void manageAcks(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
-		tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
-		cout << "reçu DATA : " << tlv.content.data.data << endl;
+		Table_ACKFrom(&tlv, from);
 	}
 }
 
@@ -222,11 +242,16 @@ void manageNeighbours(list<TLV>& tlvs)
 {
 	for (TLV tlv : tlvs)
 	{
-		cout << "reçu NEIGHBOUR" << endl;
+		ADDRESS toAdd;
+		memcpy(toAdd.addrIP, tlv.content.neighbour.addrIP, 16);
+		toAdd.port = tlv.content.neighbour.port;
+		address2IP(tlv.content.neighbour.addrIP, tlv.content.neighbour.port);
+		//Ajout à TVP d'un ID inconnu, qui sera identifié lors d'un Hello éventuel venant de cette adresse IP.
+		TVP[toAdd];
 	}
 }
 
-void manageGoAways(list<TLV>& tlvs)
+void manageGoAways(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
@@ -266,7 +291,7 @@ int setup(struct sockaddr_in6* addr)
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
 			cout << strerror(errno) << endl;
-		
+
 		printf("Serveur lancé à l'adresse %s:%d\n", dst, ntohs(servaddr.sin6_port));
 	}
 	else

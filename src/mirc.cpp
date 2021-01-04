@@ -2,11 +2,15 @@
 
 UUID myId;
 
-list<TLV*> toSend;
+//TLVs à envoyer pour chaque voisin
+unordered_map<ADDRESS, list<TLV*>, ADDRESSHash> toSend;
+//Instant de dernier envoi (éviter de surcharger le destinataire)
+unordered_map<ADDRESS, int, ADDRESSHash> lastSendTimes;
+list<TLV*> pendingForFlood; //liste accedée par les deux threads, sujette à mutex
+mutex pendingForFloodLock;
 
-/*Longueur approximative de données dans la file à envoyer*/
-int curLength = 0;
-int lastSendTime = 0;
+//Nombre minimal de voisins symétriques
+int minSymNeighbours = 10;
 
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {
@@ -306,33 +310,66 @@ TLV* tlvWarning(unsigned char length, const char* message)
 	return ret;
 }
 
+void pushTLVDATAToFlood(TLV* tlv)
+{
+	pendingForFloodLock.lock();
+	pendingForFlood.push_back(tlv);
+	pendingForFloodLock.unlock();
+}
 
+void pushPendingForFlood()
+{
+	pendingForFloodLock.lock();
+	for (TLV* tlv : pendingForFlood)
+	{
+		TLVData data = tlv->content.data;
+		DATAID id;
+		copyUUID(data.senderID, id.id);
+		id.nonce = data.nonce;
+		for (auto& voisins : TVA)
+		{
+			RR[id].tlv = tlv;
+			RR[id].toFlood[voisins.first] = { 0, GetTime() + RandomInt(0,1000) };
+		}
+	}
+	pendingForFlood.clear();
+	pendingForFloodLock.unlock();
+}
+
+void pushTLVToSend(TLV* tlv, const ADDRESS& dest)
+{
+	toSend[dest].push_back(tlv);
+}
 
 void pushTLVToSend(TLV* tlv)
 {
-	toSend.push_back(tlv);
-	curLength += tlvLen(tlv);
+	for (auto& entry : TVA)
+	{
+		pushTLVToSend(tlv, entry.first);
+	}
 }
 
-void sendPendingTLVs(int fd, struct sockaddr_in6* destaddr)
+void sendPendingTLVs(int fd, const ADDRESS& address)
 {
-	if (curLength < 1000)
+	list<TLV*>& listSend = toSend[address];
+	int time = GetTime();
+
+
+	if (time - lastSendTimes[address] < 10000)
 	{
-		//File non pleine, le datagramme sera utilisé inefficacement : quand était le dernier envoi ?
-		if (GetTime() - lastSendTime < 10000)
-		{
-			//10 sec, on attend encore
-			return;
-		}//On envoie sinon
-	}
+		//10 sec, on attend encore
+		return;
+	}//On envoie sinon
+
+	lastSendTimes[address] = time;
 	char* buf = new char[1024];
 	char data[1024];
 	int totalLength = 0;
 	int len = 0;
 
-	while (totalLength < 1024 && !toSend.empty())
+	while (totalLength < 1024 && !listSend.empty())
 	{
-		TLV* cur = toSend.front();
+		TLV* cur = listSend.front();
 
 		len = encodeTLV(cur, data);
 		if (totalLength + len > 1024)
@@ -342,7 +379,7 @@ void sendPendingTLVs(int fd, struct sockaddr_in6* destaddr)
 		}
 		memcpy(buf + totalLength, data, len);
 		totalLength += len;
-		toSend.pop_front();
+		listSend.pop_front();
 	}
 
 	switch (totalLength - 1024)
@@ -360,9 +397,12 @@ void sendPendingTLVs(int fd, struct sockaddr_in6* destaddr)
 		memcpy(buf + totalLength, data, len);
 		break;
 	}
-	curLength -= totalLength;
-	socklen_t l = sizeof(*destaddr);
-	sendto(fd, buf, 1024, 0, (struct sockaddr*)destaddr, l);
+
+	if (totalLength > 0)
+	{ //On n'envoie pas de paquet uniquement de remplissage.
+		socklen_t l = sizeof(address.nativeAddr);
+		sendto(fd, buf, 1024, 0, (struct sockaddr*)(&address.nativeAddr), l);
+	}
 }
 
 
@@ -486,6 +526,11 @@ int encodeTLV(TLV* t, char* outData)
 	outData[0] = (char)type;
 
 	return length;
+}
+
+void eraseFromSendList(const ADDRESS& a)
+{
+	toSend.erase(a);
 }
 
 

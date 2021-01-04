@@ -17,6 +17,34 @@
 
 using namespace std;
 
+bool tabEq(const char* a, const char* b, int size = 16);
+
+typedef struct ADDRESS_s
+{
+	char addrIP[16];
+	unsigned short port;
+
+	struct sockaddr_in6 nativeAddr;
+
+	bool const operator==(const struct ADDRESS_s& o) const
+	{
+		return port == o.port && tabEq(addrIP, o.addrIP);
+	}
+
+	bool const operator!=(const struct ADDRESS_s& o) const
+	{
+		return !(o == *this);
+	}
+} ADDRESS;
+
+struct ADDRESSHash
+{
+	size_t operator()(const ADDRESS& o) const
+	{
+		return hash<unsigned short>()(o.port) ^ hash<uint64_t>()(*((uint64_t*)(o.addrIP))) ^ hash<uint64_t>()(*((uint64_t*)(o.addrIP + 8)));
+	}
+};
+
 void InitUtils();
 
 #define VERBOSE
@@ -29,6 +57,8 @@ void verbose(string msg);
 #endif
 
 #define MINUTE	60000
+
+
 
 /// <summary>
 /// Millisecondes depuis le début de l'exécution.
@@ -61,6 +91,12 @@ unsigned short ShortToNetwork(unsigned short localshort);
 
 char* RandomBytes(int size);
 
+/// <summary>
+/// Retourne un entier aléatoire entre min et max.
+/// </summary>
+/// <param name="min"></param>
+/// <param name="max"></param>
+/// <returns></returns>
 int RandomInt(int min, int max);
 
 /// <summary>

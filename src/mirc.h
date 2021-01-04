@@ -3,9 +3,16 @@
 
 #include "utils.h"
 #include "tlv.h"
+#include "tables.h"
 #include <iostream>
+#include <mutex>
+
 using namespace std;
+
 extern UUID myId;
+extern int minSymNeighbours;
+ 
+
 
 /*Définitions du protocole*/
 #define MIRC_MAGIC			95
@@ -91,12 +98,30 @@ TLV* tlvWarning(unsigned char length,
 	const char* message);
 
 /// <summary>
+/// Place un TLV de données dans la file d'attente de tous les voisins.
+/// </summary>
+/// <param name="tlv"></param>
+void pushTLVDATAToFlood(TLV* tlv);
+
+/// <summary>
+/// Régulièrement appelée pour basculer les TLVs en attente en provenance du thread principal
+/// vers la liste RR à inonder.
+/// </summary>
+void pushPendingForFlood();
+
+/// <summary>
 /// Place le TLV dans la file de données à envoyer.
+/// </summary>
+/// <param name="tlv"></param>
+void pushTLVToSend(TLV* tlv, const ADDRESS& dest);
+
+/// <summary>
+/// Place le TLV dans la file de données à envoyer à tous les voisins actifs.
 /// </summary>
 /// <param name="tlv"></param>
 void pushTLVToSend(TLV* tlv);
 
-void sendPendingTLVs(int fd, sockaddr_in6* destaddr);
+void sendPendingTLVs(int fd, const ADDRESS& address);
 
 int tlvLen(TLV* t);
 
@@ -109,5 +134,5 @@ int tlvLen(TLV* t);
 /// <returns></returns>
 int encodeTLV(TLV* t, char* outData);
 
- 
+void eraseFromSendList(const ADDRESS& a);
 #endif

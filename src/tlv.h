@@ -20,9 +20,7 @@ typedef char UUID[8];
 
 bool equalsUUID(const UUID a,const  UUID b);
 
-bool tabEq(const char *a, const char *b, int size = 16);
-
-void copyUUID( UUID from, UUID to);
+void copyUUID(UUID from, UUID to);
 
 using namespace std;
 
@@ -87,7 +85,7 @@ typedef struct TLV_s
 {
 	char type;
 	TLV_data content;
-
+	bool freed;
 	TLV_s(char t);
 } TLV;
 

@@ -87,6 +87,16 @@ int RandomInt(int min, int max)
 	return (rand() % (max - min)) + min;
 }
 
+bool tabEq(const char* a, const char* b, int size)
+{
+	for (int i = 0; i < size; i++)
+	{
+		if (a[i] != b[i])
+			return false;
+	}
+	return true;
+}
+
 unsigned int GetNonce(string message)
 {
 	return int(hash<string>()(message + to_string(GetTime())) & 0xffffffff);

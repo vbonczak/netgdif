@@ -14,18 +14,11 @@
 #include <signal.h>
 #include "tlv.h"
 #include "utils.h"
-#include "mirc.h"
+ 
 
-typedef struct ADDRESS_s
-{
-	char addrIP[16];
-	unsigned short port;
+extern int MAX_RR;
 
-	bool const operator==(const struct ADDRESS_s& o) const
-	{
-		return port == o.port && tabEq(addrIP, o.addrIP);
-	}
-} ADDRESS;
+
 
 typedef struct
 {
@@ -46,22 +39,18 @@ typedef struct DATAID_s
 	}
 } DATAID;
 
+
+
 typedef struct
 {
 	TLV* tlv;
 	/// <summary>
-	/// table Id -> nombre de fois où on lui a envoyé cette donnée
+	/// table Id -> (nombre de fois où on lui a envoyé cette donnée, prochain instant d'envoi en ms)
 	/// </summary>
-	map<UUID*, int> toFlood;
+	unordered_map<ADDRESS, pair<int, int>, ADDRESSHash> toFlood;
 } DATAINFO;
 
-struct ADDRESSHash
-{
-	size_t operator()(const ADDRESS& o) const
-	{
-		return hash<unsigned short>()(o.port) ^ hash<uint64_t>()(*((uint64_t*)(o.addrIP))) ^ hash<uint64_t>()(*((uint64_t*)(o.addrIP + 8)));
-	}
-};
+
 
 struct DATAIDHash
 {
@@ -91,5 +80,14 @@ extern unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 /// </summary>
 /// <param name="addr"></param>
 /// <param name="helloTLV"></param>
-void Table_HelloFrom(ADDRESS addr, TLV* helloTLV);
+void Table_HelloFrom(ADDRESS& addr, TLV* helloTLV);
+void Table_DataFrom(TLV* dataTLV, ADDRESS& from);
+void Table_ACKFrom(TLV* dataTLV, ADDRESS& from);
+
+/// <summary>
+/// S'occupe de savoir si les voisins sont symétriques ou pas, et si on doit envoyer
+/// un Hello long (dans le cas où nous n'avons pas assez de voisins symétriques).
+/// </summary>
+void Table_RefreshTVA();
+void eraseFromTVA(const ADDRESS& addr);
 #endif
