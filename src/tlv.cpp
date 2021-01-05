@@ -1,11 +1,10 @@
 #include "tlv.h"
 #include "utils.h"
+
 bool equalsUUID(const UUID a, const UUID b)
 {
 	return tabEq(a, b, 8);
 }
-
-
 
 void copyUUID(UUID from, UUID to)
 {

@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 
 	copyUUID(RandomBytes(8), myId);
-	cout << "Entrez votre surnom : " << endl;
+	writeLine("Entrez votre surnom : ");
 	getline(cin, nickname);
 
 	thread back(background);
@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 	return EXIT_SUCCESS;
 }
 
+
 void parseLine(string line)
 {
 	if (line[0] == '/')
@@ -62,7 +63,7 @@ void parseLine(string line)
 		if (cmd == "/nick")
 		{
 			nickname = line;
-			cout << "Le surnom a été changé en '" << nickname << "'." << endl;
+			writeLine("Le surnom a été changé en '" + nickname + "'.");
 		}
 	}
 	else
@@ -80,7 +81,11 @@ void background()
 {
 	struct sockaddr_in6 servaddr;
 	int fd = setup(&servaddr);
-
+	if (setupMulticast() != 0);
+	{
+		writeErr("Multicast non disponible");
+		multifd = -1;
+	}
 	int time = 0;
 	int lastNeighbourSentTime = 0;
 	int lastCleanedTime = 0;
@@ -89,7 +94,7 @@ void background()
 	thread* receiver;
 	while (!quit)
 	{
-		cout << "tour de boucle" << endl;
+		writeLine("tour de boucle");
 		time = GetTime();
 
 		if (!receiving)
@@ -115,11 +120,17 @@ void background()
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
 			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
+			//Voisins symétriques
+			for (auto& entry : TVA)
+			{
+				if (entry.second.symmetrical)
+					pushTLVToSend(tlvNeighbour(entry.first.addrIP, entry.first.port));
+			}
 			lastNeighbourSentTime = time;
 		}
 
-		//Toutes les 30sec, on nettoie les données reçues
-		if (time - lastCleanedTime > 30000)
+		//Toutes les 20sec, on nettoie les données reçues
+		if (time - lastCleanedTime > 20000)
 		{
 			Table_CleanRR();
 			lastCleanedTime = time;
@@ -147,6 +158,10 @@ void background()
 	receiver->join();
 
 	close(fd);
+
+	mircQuit();
+
+	freeAllTables();
 }
 
 
@@ -178,7 +193,7 @@ ADDRESS mapIP(struct sockaddr_in* addr)
 	{
 		memcpy(ret.addrIP, (char*)(((struct sockaddr_in6*)addr)->sin6_addr.s6_addr), 16);
 	}
-	ret.port = addr->sin_port;
+	ret.port = ntohs(addr->sin_port);//Boutisme hôte pour les champs managés
 	//On conserve l'adresse native pour aller plus vite
 	ret.nativeAddr = *((struct sockaddr_in6*)addr);
 	return ret;
@@ -187,9 +202,27 @@ ADDRESS mapIP(struct sockaddr_in* addr)
 struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 {
 	struct sockaddr_in6 ret;
-
-	memcpy(ret.sin6_addr.s6_addr, ipv6, 16);
-	ret.sin6_port = port;
+	bool zeros = true;
+	for (int i = 0; i < 10; i++)
+	{
+		zeros = zeros && (ipv6[i] == 0);
+	}
+	if (zeros && ipv6[10] == 0xff && ipv6[10] == 0xff)
+	{
+		//C'est une ipv4 Mapped
+		struct sockaddr_in* ret4 = (struct sockaddr_in*)(&ret);
+		ret4->sin_family = AF_INET;
+		ret4->sin_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+		string ip = to_string(ipv6[12]) + "." + to_string(ipv6[13]) + "." + to_string(ipv6[14]) + "." + to_string(ipv6[15]);
+		inet_aton(ip.c_str(), &(ret4->sin_addr));
+	}
+	else 
+	{
+		//ret.sin6_len = sizeof(ret); //According to other standards than POSIX
+		ret.sin6_family = AF_INET6;
+		memcpy(ret.sin6_addr.s6_addr, ipv6, 16);
+		ret.sin6_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+	}
 	return ret;
 }
 
@@ -256,9 +289,11 @@ void manageNeighbours(list<TLV>& tlvs)
 		ADDRESS toAdd;
 		memcpy(toAdd.addrIP, tlv.content.neighbour.addrIP, 16);
 		toAdd.port = tlv.content.neighbour.port;
-		address2IP(tlv.content.neighbour.addrIP, tlv.content.neighbour.port);
-		//Ajout à TVP d'un ID inconnu, qui sera identifié lors d'un Hello éventuel venant de cette adresse IP.
-		TVP[toAdd];
+		if (TVP.find(toAdd) == TVP.end()) {
+			address2IP(tlv.content.neighbour.addrIP, tlv.content.neighbour.port);
+			//Ajout à TVP d'un ID inconnu, qui sera identifié lors d'un Hello éventuel venant de cette adresse IP.
+			TVP[toAdd];
+		}
 	}
 }
 
@@ -266,7 +301,8 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
-		cout << "reçu GOAWAY : " << tlv.content.goAway.code << endl;
+		eraseFromTVA(from);
+		
 		freeTLV(tlv);
 	}
 }
@@ -276,7 +312,7 @@ void manageWarnings(list<TLV>& tlvs)
 	for (TLV tlv : tlvs)
 	{
 		tlv.content.data.data[tlv.content.warning.length - 1] = '\0';
-		cout << "Warning : " << tlv.content.warning.message << endl;
+		writeLine("Warning : " + string(tlv.content.warning.message));
 		freeTLV(tlv);
 	}
 }
@@ -303,7 +339,7 @@ int setup(struct sockaddr_in6* addr)
 		char* dst = new char[100];
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
-			cout << strerror(errno) << endl;
+			writeErr(strerror(errno));
 
 		printf("Serveur lancé à l'adresse %s:%d\n", dst, ntohs(servaddr.sin6_port));
 	}
@@ -334,9 +370,10 @@ int sigaction_wrapper(int signum, handler_t* handler) {
  */
 void sigint_handler(int sig)
 {
-	cout << endl << "Exiting. You may have to type enter again." << endl;
+	writeLine("Exiting. You may have to type enter again.");
 
 	quit = true;
 
 	return;
 }
+

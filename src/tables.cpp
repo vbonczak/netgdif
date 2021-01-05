@@ -10,6 +10,7 @@ unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 int MAX_RR = 250;
 int DATA_LIFETIME = 3 * MINUTE;
 
+
 void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
 	if (TVP.find(addr) != TVP.end())
@@ -67,7 +68,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		pushTLVToSend(tlvAck(dataTLV), from);
 		//Pas encore reçu : on l'affiche
 		data.data[data.dataLen - 1] = '\0';
-		cout << data.data << endl;
+		writeLine(data.data);
 
 		//Puis on l'ajoute
 		DATAINFO info;
@@ -167,8 +168,9 @@ void Table_RefreshTVA()
 		if (time - lastHelloSent > 15000)
 		{
 			//toutes les 15 secondes, on envoie un hello court aux voisins non symétriques
-			for (ADDRESS add : nonSym)
-				pushTLVToSend(tlvHello(myId), add);
+			/*for (ADDRESS add : nonSym)
+				pushTLVToSend(tlvHello(myId), add);*/
+			sendHello(nonSym);//MAJ : en multicast
 			lastHelloSent = time;
 		}
 	}
@@ -220,6 +222,25 @@ void Flood()
 	}
 }
 
+void sendHello(list<ADDRESS>& nonSym)
+{
+	if (multifd > 0)
+	{
+		TLV h = tlvHello(myId);
+		int count = tlvLen(h);
+		char* buf = new char[count];
+		encodeTLV(h, buf);
+		socklen_t l = sizeof(multiaddr);
+		sendto(multifd, buf, count, 0, (struct sockaddr*)(&multiaddr), l);
+	}
+	else
+	{
+		//Pas de multicast, envoi aux non symétriques
+		for (ADDRESS add : nonSym)
+			pushTLVToSend(tlvHello(myId), add);
+	}
+}
+
 void eraseFromTVA(const ADDRESS& addr)
 {
 	TVA.erase(addr);
@@ -231,4 +252,17 @@ void eraseFromTVA(const ADDRESS& addr)
 	}
 	//Ainsi que des tableaux toSend
 	eraseFromSendList(addr);
+}
+
+void freeAllTables()
+{
+
+	for (auto& entry : RR)
+	{
+		freeTLV(entry.second.tlv);
+		entry.second.toFlood.clear();
+	}
+
+	TVA.clear();
+	TVP.clear();
 }

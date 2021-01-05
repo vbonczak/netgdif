@@ -17,6 +17,11 @@
 
 using namespace std;
 
+#define MULTICAST_PORT	1212
+extern int multifd;
+extern string multiIP;
+extern struct sockaddr_in6 multiaddr;
+
 bool tabEq(const char* a, const char* b, int size = 16);
 
 typedef struct ADDRESS_s
@@ -74,7 +79,9 @@ int GetTime();
 /// <param name="port">Le port</param>
 /// <param name="p_addr">Champ rempli par cette fonction contenant l'adresse obtenue.</param>
 /// <returns></returns>
-int NewSocket(int domain, int type, int port, sockaddr* p_addr);
+int NewSocket(int domain, int type, int port, struct sockaddr* p_addr);
+
+int setupMulticast();
 
 /// <summary>
 /// 
@@ -105,5 +112,7 @@ int RandomInt(int min, int max);
 /// <param name="message"></param>
 /// <returns></returns>
 unsigned int GetNonce(string message);
+void writeLine(string line);
 
+void writeErr(string line);
 #endif

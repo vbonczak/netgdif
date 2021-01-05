@@ -251,7 +251,7 @@ TLV tlvHello(UUID sender, UUID dest)
 	return ret;
 }
 
-TLV tlvNeighbour(char addrIP[16], unsigned short port)
+TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 {
 	TLV ret(TLV_NEIGHBOUR);
 	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
@@ -551,3 +551,17 @@ char* mircstrerror(int code)
 	}
 }
 
+void mircQuit()
+{
+	pendingForFloodLock.lock();
+	for (TLV t : pendingForFlood)
+		freeTLV(t);
+	pendingForFlood.clear();
+	pendingForFloodLock.unlock();
+
+	for (auto& entry : toSend)
+	{
+		for (TLV t : entry.second)
+			freeTLV(t);
+	}
+}

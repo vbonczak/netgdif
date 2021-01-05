@@ -1,5 +1,9 @@
 #include "utils.h"
 
+int multifd = -1;
+string multiIP = "ff02::4242:4242";
+struct sockaddr_in6 multiaddr;
+
 int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 {
 	int fd = socket(domain, type, IPPROTO_UDP);
@@ -51,6 +55,46 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 
 	return fd;
 }
+
+
+int setupMulticast()
+{
+	/*Connexion à la socket*/
+	int fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+
+	if (fd < 0)
+	{
+		perror("Creation de socket impossible");
+		return -1;
+	}
+
+	/*Configuration du socket multicast*/
+	int optval = 1;
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	setsockopt(fd, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
+	setsockopt(fd, SOL_SOCKET, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(fd, SOL_SOCKET, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
+	optval = 0;
+	setsockopt(fd, SOL_SOCKET, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
+
+	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on écrive dans le vide*/
+	socklen_t len_p_addr = 0;
+
+	 
+	len_p_addr = sizeof(struct sockaddr_in6);
+	inet_pton(AF_INET6, multiIP.c_str(), &(multiaddr.sin6_addr));
+	multiaddr.sin6_family = AF_INET6;
+	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
+
+	if (bind(fd, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
+		perror("Attachement socket IPv6 impossible");
+		return -1;
+	}
+	multifd = fd;
+	return 0;
+}
+
+
 
 unsigned int IntFromNetwork(unsigned int netlong)
 {
@@ -114,6 +158,17 @@ int GetTime()
 void InitUtils()
 {
 	srand(static_cast<unsigned int>(time(NULL)));
+}
+
+
+void writeLine(string line)
+{
+	cout << line << endl;
+}
+
+void writeErr(string line)
+{
+	cout << line << endl;
 }
 
 #ifdef VERBOSE

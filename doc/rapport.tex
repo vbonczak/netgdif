@@ -25,5 +25,10 @@
   \maketitle
 	
 	
-	Les TLV en attente sont soit envoyés quand la taille atteint 1000 octets, soit quand on a pas envoyé depuis plus de 10 secondes.
+	Les TLV en attente (Data et neighbour) sont soit envoyés toutes les 5 secondes.
+	
+	On supprime le voisin de la TVA lors de la réception d'un GoAway de sa part.
+	
+	Toutes les 20 sec, nettoyage de la table des données récemment reçues.
+	
 \end{document}

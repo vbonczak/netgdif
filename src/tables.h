@@ -96,5 +96,14 @@ void Table_CleanRR();
 /// un Hello long (dans le cas où nous n'avons pas assez de voisins symétriques).
 /// </summary>
 void Table_RefreshTVA();
+
+
 void eraseFromTVA(const ADDRESS& addr);
+
+void freeAllTables();
+
+/// <summary>
+/// Envoi spécial d'un Hello en multicast
+/// </summary>
+void sendHello(list<ADDRESS>& nonSym);
 #endif

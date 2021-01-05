@@ -39,6 +39,8 @@ extern int minSymNeighbours;
 
 char* mircstrerror(int code);
 
+void mircQuit();
+
 /// <summary>
 /// 
 /// </summary>
@@ -99,7 +101,7 @@ TLV tlvHello(UUID sender, UUID dest);
 /// <param name="addrIP"></param>
 /// <param name="port"></param>
 /// <returns></returns>
-TLV tlvNeighbour(char addrIP[16], unsigned short port);
+TLV tlvNeighbour(const char addrIP[16], unsigned short port);
 /// <summary>
 /// TLV data
 /// </summary>

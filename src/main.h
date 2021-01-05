@@ -10,6 +10,8 @@ bool quit = false;
 typedef void handler_t(int);
 using namespace std;
 
+
+
 void parseLine(string line);
 
 void sendMessage(string msg);
@@ -40,6 +42,8 @@ void manageDatas(list<TLV>& tlvs, ADDRESS& from);
 void manageAcks(list<TLV>& tlvs, ADDRESS& from);
 void manageGoAways(list<TLV>& tlvs, ADDRESS& from);
 void manageWarnings(list<TLV>& tlvs);
+
+
 int setup(struct sockaddr_in6*);
 
 int sigaction_wrapper(int signum, handler_t* handler);
