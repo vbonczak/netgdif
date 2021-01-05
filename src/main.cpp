@@ -74,9 +74,9 @@ void parseLine(string line)
 
 void sendMessage(string msg)
 {
-	//pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
-	socklen_t l = sizeof(multiaddr);
-	sendto(multifd, msg.c_str(), msg.size() + 1, 0, (struct sockaddr*)(&multiaddr), l);
+	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
+	//socklen_t l = sizeof(multiaddr);
+	//sendto(multifd, msg.c_str(), msg.size() + 1, 0, (struct sockaddr*)(&multiaddr), l);
 }
 
 void background()
@@ -102,16 +102,16 @@ void background()
 			//le receveur a rempli le paquet
 			receiver->join();
 			delete receiver;
-			char res[60];
+			/*char res[60];
 			inet_ntop(AF_INET6, (void*)(&client.sin6_addr), res, 60);
 			writeLine("Reçu de la part de " + string(res) + " le message suivant :");
 			writeLine(string(rawUDP));
-			/*
+			*/
 			MIRC_DGRAM dgram;
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
 			manageDatagram(dgram, ad);
-			*/
+			
 			rawUDP_read = true; //nous l'avons lu
 		}
 
@@ -121,7 +121,7 @@ void background()
 			receiver = new thread(receive, fd, &client);
 			receiving = true;
 		}
-		/*
+		
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
 			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
@@ -156,7 +156,7 @@ void background()
 				sendPendingTLVs(fd, entry.first);
 			}
 		}
-		*/
+		
 		sleep(1);
 	}
 
