@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 
 	copyUUID(RandomBytes(8), myId);
-	writeLine("Entrez votre surnom : ");
+	writeLine("Entrez votre pseudo : ");
 	getline(cin, nickname);
 
 	thread back(background);
@@ -81,26 +81,51 @@ void background()
 {
 	struct sockaddr_in6 servaddr;
 	int fd = setup(&servaddr);
-	if (setupMulticast() != 0);
-	{
-		writeErr("Multicast non disponible");
-		multifd = -1;
-	}
+ 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
 	int lastCleanedTime = 0;
 	//Instant de dernier envoi (éviter de surcharger le destinataire)
 	int lastSendTime;
 	thread* receiver;
+	struct sockaddr_in6 client;
 	while (!quit)
 	{
 		writeLine("tour de boucle");
+
+		if (!rawUDP_read)
+		{
+			receiver->join();
+			delete receiver;
+
+			cout << "joint" << endl;
+			//le receveur a rempli le paquet
+			/*
+			MIRC_DGRAM dgram;
+			parseDatagram(rawUDP, rawUDP_len, dgram);
+			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
+			manageDatagram(dgram, ad);
+			rawUDP_read = true; //nous l'avons lu
+			*/
+			rawUDP[rawUDP_len] = 0;
+			cout << string(rawUDP) << endl;
+
+			rawUDP_read = true; //nous l'avons lu
+		}
+
+		if (!receiving && rawUDP_read)
+		{
+			//Lance un receveur
+			receiving = true;
+			receiver = new thread(receive, fd, &client);
+		}
+#if false
 		time = GetTime();
 
 		if (!receiving)
 		{
 			//Lance un receveur
-			receiver = new thread(receive, fd);
+			receiver = new thread(receive, fd, &client);
 			receiving = true;
 		}
 
@@ -150,6 +175,7 @@ void background()
 				sendPendingTLVs(fd, entry.first);
 			}
 		}
+#endif
 		sleep(1);
 	}
 
@@ -166,14 +192,13 @@ void background()
 
 
 
-void receive(int fd)
+void receive(int fd, struct sockaddr_in6* client)
 {
-	struct sockaddr_in6 client;
-	socklen_t len = sizeof(client);
-	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)&client, &len);
-	if (rawUDP_len > 0)
-		rawUDP_read = false;
+	socklen_t len = sizeof(*client);
+	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
+	rawUDP_read = false;
 
+	sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
 	receiving = false;
 }
 
@@ -216,7 +241,7 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 		string ip = to_string(ipv6[12]) + "." + to_string(ipv6[13]) + "." + to_string(ipv6[14]) + "." + to_string(ipv6[15]);
 		inet_aton(ip.c_str(), &(ret4->sin_addr));
 	}
-	else 
+	else
 	{
 		//ret.sin6_len = sizeof(ret); //According to other standards than POSIX
 		ret.sin6_family = AF_INET6;
@@ -302,7 +327,7 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from)
 	for (TLV tlv : tlvs)
 	{
 		eraseFromTVA(from);
-		
+
 		freeTLV(tlv);
 	}
 }
@@ -324,7 +349,7 @@ int setup(struct sockaddr_in6* addr)
 	char service[NI_MAXSERV];
 
 	/*Connexion à la socket*/
-	int fd = NewSocket(AF_INET6, SOCK_DGRAM, 0, (struct sockaddr*)&servaddr);
+	int fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr);
 	if (fd < 0)
 	{
 		perror("Problème de création de connexion.");
@@ -346,6 +371,7 @@ int setup(struct sockaddr_in6* addr)
 	else
 		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin6_port));
 	*addr = servaddr;
+
 	return fd;
 }
 
@@ -370,10 +396,9 @@ int sigaction_wrapper(int signum, handler_t* handler) {
  */
 void sigint_handler(int sig)
 {
-	writeLine("Exiting. You may have to type enter again.");
+	writeLine("\nArrêt. Appuyez sur Entrée pour quitter.");
 
 	quit = true;
 
 	return;
 }
-

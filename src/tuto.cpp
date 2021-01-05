@@ -7,7 +7,7 @@ void serveur()
 	char service[NI_MAXSERV];
 
 	/*Connexion à la socket*/
-	int fd = NewSocket(AF_INET, SOCK_DGRAM, 0, (struct sockaddr*)&servaddr);
+	int fd = NewSocket(SOCK_DGRAM, 0, (struct sockaddr*)&servaddr);
 	if (fd < 0)
 	{
 		perror("Problème de création de connexion.");
@@ -45,7 +45,7 @@ void client(int argc, char* argv[])
 	struct sockaddr addr;
 
 	/*Connexion*/
-	int fd = NewSocket(AF_INET, SOCK_DGRAM, 0, (struct sockaddr*)&addr);
+	int fd = NewSocket(SOCK_DGRAM, 0, (struct sockaddr*)&addr);
 	if (fd == -1) {
 		perror("Erreur connexion.");
 		exit(2);

@@ -4,9 +4,24 @@ int multifd = -1;
 string multiIP = "ff02::4242:4242";
 struct sockaddr_in6 multiaddr;
 
-int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
+int NewSocket(int type, int port, struct sockaddr* p_addr)
 {
-	int fd = socket(domain, type, IPPROTO_UDP);
+	/*// OPEN
+	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
+
+	// BIND
+	struct sockaddr_in6 address = { AF_INET6, htons(MULTICAST_PORT) };
+	bind(fd, (struct sockaddr*)&address, sizeof address);
+
+	// JOIN MEMBERSHIP
+	struct ipv6_mreq group;
+	group.ipv6mr_interface = 0;
+	inet_pton(AF_INET6, multiIP.c_str(), &group.ipv6mr_multiaddr);
+	setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &group, sizeof group);
+
+	return fd;*/
+
+	int fd  = socket(AF_INET6, type, 0);
 
 	if (fd < 0)
 	{
@@ -21,33 +36,24 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on écrive dans le vide*/
 	socklen_t len_p_addr = 0;
 
-	/*Bind l'adresse selon IPv4 ou IPv6*/
-	if (domain == AF_INET)
-	{
-		struct sockaddr_in addr;
-		len_p_addr = sizeof(struct sockaddr_in);
-		memset(&addr, 0, len_p_addr);
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(port);  /*Conversion de boutisme*/
+	struct sockaddr_in6 addr;
+	len_p_addr = sizeof(struct sockaddr_in6);
+	memset(&addr, 0, len_p_addr); //INADDR_ANY
+	addr.sin6_family = AF_INET6;
+	addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
-		if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1)
-		{
-			perror("Attachement socket IPv4 impossible");
-			return -1;
-		}
+//Multicast
+
+
+	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
+		perror("Attachement socket IPv6 impossible");
+		return -1;
 	}
-	else
-	{
-		struct sockaddr_in6 addr;
-		len_p_addr = sizeof(struct sockaddr_in6);
-		memset(&addr, 0, len_p_addr); //INADDR_ANY
-		addr.sin6_family = AF_INET6;
-		addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
-		if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
-			perror("Attachement socket IPv6 impossible");
-			return -1;
-		}
+	if (setupMulticast(fd) != 0)
+	{
+		//Multicast non disponible
+		multifd = -1;
 	}
 
 	if (p_addr != NULL)
@@ -57,12 +63,12 @@ int NewSocket(int domain, int type, int port, struct sockaddr* p_addr)
 }
 
 
-int setupMulticast()
+int setupMulticast(int fd)
 {
 	/*Connexion à la socket*/
-	int fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	int multifd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-	if (fd < 0)
+	if (multifd < 0)
 	{
 		perror("Creation de socket impossible");
 		return -1;
@@ -70,31 +76,47 @@ int setupMulticast()
 
 	/*Configuration du socket multicast*/
 	int optval = 1;
-	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-	setsockopt(fd, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
-	setsockopt(fd, SOL_SOCKET, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
-	setsockopt(fd, SOL_SOCKET, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(multifd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	setsockopt(multifd, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
+	setsockopt(multifd, SOL_SOCKET, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(multifd, SOL_SOCKET, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
 	optval = 0;
-	setsockopt(fd, SOL_SOCKET, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
+	setsockopt(multifd, SOL_SOCKET, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
+
 
 	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on écrive dans le vide*/
 	socklen_t len_p_addr = 0;
 
-	 
+
 	len_p_addr = sizeof(struct sockaddr_in6);
 	inet_pton(AF_INET6, multiIP.c_str(), &(multiaddr.sin6_addr));
 	multiaddr.sin6_family = AF_INET6;
 	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
+	multiaddr.sin6_scope_id = if_nametoindex("eth0");
 
-	if (bind(fd, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
-		perror("Attachement socket IPv6 impossible");
+	if (bind(multifd, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
+		perror("Attachement socket multicast IPv6 impossible");
+		strerror(errno);
 		return -1;
 	}
-	multifd = fd;
+
+	/*Joindre le groupe multicast*/
+	struct ipv6_mreq multicastRequest;  /* Multicast address join structure */
+		/* Specify the multicast group */
+	memcpy(&multicastRequest.ipv6mr_multiaddr,
+		&multiaddr.sin6_addr,
+		sizeof(multicastRequest.ipv6mr_multiaddr));
+
+	/* Accept multicast from any interface */
+	multicastRequest.ipv6mr_interface = multiaddr.sin6_scope_id;
+	/* Join the multicast address */
+	if (setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &multicastRequest, sizeof(multicastRequest)) != 0)
+	{
+		perror("Problème d'inscription au groupe multicast.");
+	}
+
 	return 0;
 }
-
-
 
 unsigned int IntFromNetwork(unsigned int netlong)
 {

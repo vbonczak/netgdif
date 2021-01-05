@@ -6,6 +6,7 @@
 #include "mirc.h"
 #include <thread>
 
+
 bool quit = false;
 typedef void handler_t(int);
 using namespace std;
@@ -18,7 +19,7 @@ void sendMessage(string msg);
 
 void background();
 
-void receive(int fd);
+void receive(int fd, sockaddr_in6* client);
 
 /// <summary>
 /// Encapsule l'adresse physique (IP4 ou 6) dans notre structure ADDRESS.

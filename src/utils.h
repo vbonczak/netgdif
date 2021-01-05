@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <arpa/inet.h>
 #include <chrono>
+#include <net/if.h>
 
 using namespace std;
 
@@ -79,9 +80,15 @@ int GetTime();
 /// <param name="port">Le port</param>
 /// <param name="p_addr">Champ rempli par cette fonction contenant l'adresse obtenue.</param>
 /// <returns></returns>
-int NewSocket(int domain, int type, int port, struct sockaddr* p_addr);
+int NewSocket(int type, int port, struct sockaddr* p_addr);
 
-int setupMulticast();
+/// <summary>
+/// Créée un socket multicast pour l'envoi des Hellos, et connecte le socket standard
+/// pour recevoir des messages du même groupe multicast.
+/// </summary>
+/// <param name="fd"></param>
+/// <returns></returns>
+int setupMulticast(int fd);
 
 /// <summary>
 /// 

@@ -323,7 +323,7 @@ void pushPendingForFlood()
 	{
 		TLVData data = tlv.content.data;
 		DATAID id;
-		
+
 		copyUUID(data.senderID, id.id);
 		id.nonce = data.nonce;
 		for (auto& voisins : TVA)
@@ -353,10 +353,11 @@ void pushTLVToSend(TLV tlv)
 void sendPendingTLVs(int fd, const ADDRESS& address)
 {
 	list<TLV>& listSend = toSend[address];
+	//taille avec l'entête MIRC
 
-	char* buf = new char[1024];
+	char buf[1024] = { MIRC_MAGIC,0 };
 	char data[1024];
-	int totalLength = 0;
+	int totalLength = 4;//entête MIRC
 	int len = 0;
 
 	while (totalLength < 1024 && !listSend.empty())
@@ -374,24 +375,26 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		listSend.pop_front();
 	}
 
-	switch (totalLength - 1024)
+	switch (1024 - totalLength)
 	{
 	case 0:
 		//Pas de problème
 		break;
 	case 1:
 		//pad1 pour combler
-		buf[1023] = 0;
+		buf[1024 - 1] = 0;
 		break;
 	default:
 		//padN pour combler
-		len = encodeTLV(tlvPadN(1022 - totalLength), data);
+		len = encodeTLV(tlvPadN(1024 - 2 - totalLength), data);
 		memcpy(buf + totalLength, data, len);
 		break;
 	}
 
 	if (totalLength > 0)
 	{ //On n'envoie pas de paquet uniquement de remplissage.
+		unsigned short len = ShortToNetwork(totalLength - 4);
+		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, 1024, 0, (struct sockaddr*)(&address.nativeAddr), l);
 	}
