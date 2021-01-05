@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <chrono>
 #include <net/if.h>
+#include <ifaddrs.h>
 
 using namespace std;
 
@@ -104,6 +105,8 @@ unsigned short ShortFromNetwork(unsigned short netshort);
 unsigned short ShortToNetwork(unsigned short localshort);
 
 char* RandomBytes(int size);
+
+int findMulticastInterface();
 
 /// <summary>
 /// Retourne un entier aléatoire entre min et max.

@@ -21,7 +21,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 
 	return fd;*/
 
-	int fd  = socket(AF_INET6, type, 0);
+	int fd = socket(AF_INET6, type, 0);
 
 	if (fd < 0)
 	{
@@ -47,13 +47,13 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 		//Multicast non disponible
 		multifd = -1;
 	}
-//Multicast
+	//Multicast
 	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
 		perror("Attachement socket IPv6 impossible");
 		return -1;
 	}
 
-	
+
 
 	if (p_addr != NULL)
 		getsockname(fd, (struct sockaddr*)p_addr, &len_p_addr);
@@ -91,7 +91,7 @@ int setupMulticast(int fd)
 	inet_pton(AF_INET6, multiIP.c_str(), &(multiaddr.sin6_addr));
 	multiaddr.sin6_family = AF_INET6;
 	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
-	multiaddr.sin6_scope_id = if_nametoindex("eth0");
+	multiaddr.sin6_scope_id = findMulticastInterface();
 
 	if (bind(multifd, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
 		perror("Attachement socket multicast IPv6 impossible");
@@ -115,6 +115,38 @@ int setupMulticast(int fd)
 	}
 
 	return 0;
+}
+
+int findMulticastInterface()
+{
+	struct ifaddrs* ifaddr = NULL;
+
+	if (getifaddrs(&ifaddr) || ifaddr == NULL)
+	{
+		perror("Erreur lors de la recherche d'interface pour le Multicast");
+		return 0;
+	}
+	struct ifaddrs* cur = ifaddr;
+
+	char* name = NULL;
+	while (cur != NULL)
+	{
+
+		if ((cur->ifa_flags & IFF_MULTICAST) != 0 && (cur->ifa_flags & IFF_UP) != 0)
+		{
+			//OK pour multicast
+			name = cur->ifa_name;
+			break;
+		}
+		cur = cur->ifa_next;
+	}
+	int ret = 0;
+	if (name != NULL)
+		ret = if_nametoindex(name);
+	cout << "trouvé" << name << endl;
+	freeifaddrs(ifaddr);
+
+	return ret;
 }
 
 unsigned int IntFromNetwork(unsigned int netlong)

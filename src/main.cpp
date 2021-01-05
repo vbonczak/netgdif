@@ -160,11 +160,12 @@ void background()
 		sleep(1);
 	}
 
-	shutdown(fd, SHUT_RDWR);
+	shutdown(fd, SHUT_RDWR); //pour que recv retourne immédiatement
+
+	close(multifd);
+	close(fd);
 
 	receiver->join();
-
-	close(fd);
 
 	mircQuit();
 
