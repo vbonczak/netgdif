@@ -7,7 +7,7 @@ unordered_map<ADDRESS, INFOPAIR, ADDRESSHash> TVA;
 
 unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 
-int MAX_RR = 250;
+int MAX_RR = 1000;
 int DATA_LIFETIME = 3 * MINUTE;
 
 
@@ -62,10 +62,18 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 	if (RR.find(id) != RR.end())
 	{
 		//Pas encore reçu 
+		if (equalsUUID(data.senderID, myId))
+		{
+			//Un de nos messages qui revient, on l'ACK.
+			pushTLVToSend(tlvAck(dataTLV), from);
+			return;
+		}
+
 		if (RR.size() > MAX_RR)//Taille limitée, on ne peut pas le recevoir
 			return;
 		//Dans tous les cas, un ACK
 		pushTLVToSend(tlvAck(dataTLV), from);
+
 		//Pas encore reçu : on l'affiche
 		data.data[data.dataLen - 1] = '\0';
 		writeLine(data.data);
@@ -228,10 +236,14 @@ void sendHello(list<ADDRESS>& nonSym)
 	{
 		TLV h = tlvHello(myId);
 		int count = tlvLen(h);
-		char* buf = new char[count];
-		encodeTLV(h, buf);
+		char* buf = new char[count + 4];
+		buf[0] = MIRC_MAGIC;
+		buf[1] = 0;
+		encodeTLV(h, buf + 4);
+		unsigned short ll = ShortToNetwork(count);
+		memcpy(buf + 2, (char*)(&ll), 2);
 		socklen_t l = sizeof(multiaddr);
-		sendto(multifd, buf, count, 0, (struct sockaddr*)(&multiaddr), l);
+		sendto(multifd, buf, count + 4, 0, (struct sockaddr*)(&multiaddr), l);
 	}
 	else
 	{

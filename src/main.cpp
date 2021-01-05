@@ -74,7 +74,9 @@ void parseLine(string line)
 
 void sendMessage(string msg)
 {
-	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
+	//pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
+	socklen_t l = sizeof(multiaddr);
+	sendto(multifd, msg.c_str(), msg.size() + 1, 0, (struct sockaddr*)(&multiaddr), l);
 }
 
 void background()
@@ -93,55 +95,33 @@ void background()
 	{
 		writeLine("tour de boucle");
 
+		time = GetTime();
+
 		if (!rawUDP_read)
 		{
+			//le receveur a rempli le paquet
 			receiver->join();
 			delete receiver;
-
-			cout << "joint" << endl;
-			//le receveur a rempli le paquet
+			char res[60];
+			inet_ntop(AF_INET6, (void*)(&client.sin6_addr), res, 60);
+			writeLine("Reçu de la part de " + string(res) + " le message suivant :");
+			writeLine(string(rawUDP));
 			/*
 			MIRC_DGRAM dgram;
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
 			manageDatagram(dgram, ad);
-			rawUDP_read = true; //nous l'avons lu
 			*/
-			rawUDP[rawUDP_len] = 0;
-			cout << string(rawUDP) << endl;
-
 			rawUDP_read = true; //nous l'avons lu
 		}
 
 		if (!receiving && rawUDP_read)
 		{
 			//Lance un receveur
-			receiving = true;
-			receiver = new thread(receive, fd, &client);
-		}
-#if false
-		time = GetTime();
-
-		if (!receiving)
-		{
-			//Lance un receveur
 			receiver = new thread(receive, fd, &client);
 			receiving = true;
 		}
-
-		if (!rawUDP_read)
-		{
-			//le receveur a rempli le paquet
-			receiver->join();
-			delete receiver;
-
-			MIRC_DGRAM dgram;
-			parseDatagram(rawUDP, rawUDP_len, dgram);
-			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
-			manageDatagram(dgram, ad);
-			rawUDP_read = true; //nous l'avons lu
-		}
-
+		/*
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
 			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
@@ -154,8 +134,8 @@ void background()
 			lastNeighbourSentTime = time;
 		}
 
-		//Toutes les 20sec, on nettoie les données reçues
-		if (time - lastCleanedTime > 20000)
+		//Toutes les 2mn, on nettoie les données reçues
+		if (time - lastCleanedTime > 2 * MINUTE)
 		{
 			Table_CleanRR();
 			lastCleanedTime = time;
@@ -168,6 +148,7 @@ void background()
 
 		if (time - lastSendTime > 5000)
 		{
+			writeLine("Envoi des TLVs en attente");
 			lastSendTime = time;
 			//Envoi effectif des paquets UDP vers leurs destinataires respectifs.
 			for (auto& entry : TVA)
@@ -175,7 +156,7 @@ void background()
 				sendPendingTLVs(fd, entry.first);
 			}
 		}
-#endif
+		*/
 		sleep(1);
 	}
 
@@ -198,7 +179,7 @@ void receive(int fd, struct sockaddr_in6* client)
 	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
 	rawUDP_read = false;
 
-	sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
+	//sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
 	receiving = false;
 }
 

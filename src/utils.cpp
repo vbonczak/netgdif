@@ -42,19 +42,18 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 	addr.sin6_family = AF_INET6;
 	addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
-//Multicast
-
-
-	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
-		perror("Attachement socket IPv6 impossible");
-		return -1;
-	}
-
 	if (setupMulticast(fd) != 0)
 	{
 		//Multicast non disponible
 		multifd = -1;
 	}
+//Multicast
+	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
+		perror("Attachement socket IPv6 impossible");
+		return -1;
+	}
+
+	
 
 	if (p_addr != NULL)
 		getsockname(fd, (struct sockaddr*)p_addr, &len_p_addr);
@@ -66,7 +65,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 int setupMulticast(int fd)
 {
 	/*Connexion à la socket*/
-	int multifd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	multifd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
 	if (multifd < 0)
 	{
