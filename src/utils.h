@@ -52,6 +52,13 @@ struct ADDRESSHash
 	}
 };
 
+/// <summary>
+/// Mappe au bon endroit l'adresse et le port dans la structure native sockaddr_in6
+/// </summary>
+/// <param name="ipv6"></param>
+/// <param name="port"></param>
+struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port);
+
 void InitUtils();
 
 #define VERBOSE

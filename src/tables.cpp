@@ -288,6 +288,32 @@ void freeAllTables()
 	DEBUG("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
 		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
 
+	char* dest = new char[50]{ 0 };
+	for (auto& entry : RR)
+	{
+		cout << tlvToString(entry.second.tlv) << endl;
+		cout << "infos{\n";
+		for (auto& entry2 : entry.second.toFlood)
+		{
+			inet_ntop(AF_INET6, &entry2.first.nativeAddr, dest, 50);
+			cout << "à dest. de " << dest << entry2.second.first << "fois, prochain envoi à " << entry2.second.second << endl;
+
+		}
+		cout << "}\n";
+	}
+	cout << "TVA\n";
+	for (auto& entry : TVA)
+	{
+		inet_ntop(AF_INET6, &entry.first.nativeAddr, dest, 50);
+		cout << "Voisin actif " << dest << (entry.second.symmetrical ? " Sym " : " ") << endl;
+	}
+	cout << "TVP\n";
+	for (auto& entry : TVP)
+	{
+		inet_ntop(AF_INET6, &entry.first.nativeAddr, dest, 50);
+		cout << "Voisin potentiel " << dest << " d'Id " << UUIDtoString(entry.second) << endl;
+	}
+	delete dest;
 	TVA.clear();
 	TVP.clear();
 }

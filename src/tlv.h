@@ -4,6 +4,9 @@
 #include <map>
 #include <list>
 #include <string.h>
+#include <string>
+
+using namespace std;
 
 /*Types de TLV*/
 #define TLV_PAD1			0
@@ -17,6 +20,8 @@
 #define TLV_MaxType			7
 
 typedef char UUID[8];
+
+string UUIDtoString(UUID u);
 
 bool equalsUUID(const UUID a,const  UUID b);
 
@@ -107,3 +112,5 @@ MIRC_DGRAM dgramInit();
 /// </summary>
 /// <param name="tlv"></param>
 void freeTLV(TLV& tlv);
+
+string tlvToString(TLV& tlv);

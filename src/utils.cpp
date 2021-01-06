@@ -212,6 +212,32 @@ void InitUtils()
 	srand(static_cast<unsigned int>(time(NULL)));
 }
 
+struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
+{
+	struct sockaddr_in6 ret;
+	bool zeros = true;
+	for (int i = 0; i < 10; i++)
+	{
+		zeros = zeros && (ipv6[i] == 0);
+	}
+	if (zeros && ipv6[10] == 0xff && ipv6[10] == 0xff)
+	{
+		//C'est une ipv4 Mapped
+		struct sockaddr_in* ret4 = (struct sockaddr_in*)(&ret);
+		ret4->sin_family = AF_INET;
+		ret4->sin_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+		string ip = to_string(ipv6[12]) + "." + to_string(ipv6[13]) + "." + to_string(ipv6[14]) + "." + to_string(ipv6[15]);
+		inet_aton(ip.c_str(), &(ret4->sin_addr));
+	}
+	else
+	{
+		//ret.sin6_len = sizeof(ret); //According to other standards than POSIX
+		ret.sin6_family = AF_INET6;
+		memcpy(ret.sin6_addr.s6_addr, ipv6, 16);
+		ret.sin6_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+	}
+	return ret;
+}
 
 void writeLine(string line)
 {

@@ -28,12 +28,7 @@ void receive(int fd, sockaddr_in6* client);
 /// <returns></returns>
 ADDRESS mapIP(sockaddr_in* addr);
 
-/// <summary>
-/// Mappe au bon endroit l'adresse et le port dans la structure native sockaddr_in6
-/// </summary>
-/// <param name="ipv6"></param>
-/// <param name="port"></param>
-struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port);
+
 
 void manageDatagram(MIRC_DGRAM& dgram, ADDRESS& from);
 

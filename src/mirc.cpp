@@ -34,7 +34,7 @@ int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 {
 	unsigned short bodyLength = ShortFromNetwork(*((unsigned short*)data));
-	 
+
 	if (length > bodyLength + 2)
 	{
 		return PARSE_ETOOBIG;
@@ -48,17 +48,17 @@ int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 {
 	DEBUG(string(__PRETTY_FUNCTION__));
-	 
+
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
-	 
+
 	unsigned int length = 0;
 	int ret = 0;
 	while (sz > 0)
 	{
 		TLV_data cur;
 		char type = body[0];
-		
+
 		switch (type)
 		{
 		case TLV_PAD1:				/*Silencieusement ignoré*/
@@ -429,7 +429,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, 1024, 0, (struct sockaddr*)(&address.nativeAddr), l);
-		DEBUG("Envoi effectif de " + to_string(len) + " octets");
+		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets");
 	}
 }
 
