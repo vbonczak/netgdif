@@ -117,7 +117,7 @@ void background()
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
 			char res[60];
-			inet_ntop(AF_INET6, (void*)(&client.sin6_addr), res, 60);
+			inet_ntop(AF_INET6, (void*)(&ad.nativeAddr.sin6_addr), res, 60);
 
 			DEBUG("mapIP dit " + string(res));
 			manageDatagram(dgram, ad);
