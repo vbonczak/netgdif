@@ -89,8 +89,9 @@ int GetTime();
 /// <param name="port">Le port</param>
 /// <param name="p_addr">Champ rempli par cette fonction contenant l'adresse obtenue.</param>
 /// <param name="mfd">Descripteur de fichier correspondant au socket multicast.</param>
+/// <param name="physaddr">L'adresse physique de notre interface.</param>
 /// <returns></returns>
-int NewSocket(int type, int port, struct sockaddr* p_addr, int& mfd);
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& mfd,struct sockaddr* physaddr);
 
 
 
@@ -115,9 +116,14 @@ char* RandomBytes(int size);
 /// </summary>
 /// <param name="fd"></param>
 /// <returns></returns>
-int setupMulticast(int fd, int& fd_multicast);
+int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr);
 
-int findMulticastInterface();
+/// <summary>
+/// 
+/// </summary>
+/// <param name="interfaceAddr"></param>
+/// <returns></returns>
+int findMulticastInterface(struct sockaddr* interfaceAddr);
 
 /// <summary>
 /// Retourne un entier aléatoire entre min et max.

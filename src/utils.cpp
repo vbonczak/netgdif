@@ -2,9 +2,9 @@
 
 int multifd = -1;
 string multiIP = "ff02::4242:4242";
-struct sockaddr_in6 multiaddr;
+struct sockaddr_in6 multiaddr; 
 
-int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast)
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, struct sockaddr* physicaladdr)
 {
 	/*// OPEN
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -43,7 +43,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast)
 	addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
 
-	if (setupMulticast(fd, fd_multicast) != 0)
+	if (setupMulticast(fd, fd_multicast, physicaladdr) != 0)
 	{
 		//Multicast non disponible
 		fd_multicast = -1;
@@ -62,7 +62,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast)
 }
 
 
-int setupMulticast(int fd, int& fd_multicast)
+int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr)
 {
 	/*Connexion à la socket*/
 	fd_multicast = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -91,7 +91,7 @@ int setupMulticast(int fd, int& fd_multicast)
 	inet_pton(AF_INET6, multiIP.c_str(), &(multiaddr.sin6_addr));
 	multiaddr.sin6_family = AF_INET6;
 	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
-	multiaddr.sin6_scope_id = findMulticastInterface();
+	multiaddr.sin6_scope_id = findMulticastInterface(myInterfaceAddr);
 
 	if (bind(fd_multicast, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
 		perror("Attachement socket multicast IPv6 impossible");
@@ -100,8 +100,8 @@ int setupMulticast(int fd, int& fd_multicast)
 	}
 
 	/*Joindre le groupe multicast*/
-	struct ipv6_mreq multicastRequest;   
-		 
+	struct ipv6_mreq multicastRequest;
+
 	memcpy(&multicastRequest.ipv6mr_multiaddr, &multiaddr.sin6_addr, sizeof(multicastRequest.ipv6mr_multiaddr));
 
 	//Même interface que le socket fd_multicast
@@ -115,7 +115,7 @@ int setupMulticast(int fd, int& fd_multicast)
 	return 0;
 }
 
-int findMulticastInterface()
+int findMulticastInterface(struct sockaddr* interfaceAddr)
 {
 	struct ifaddrs* ifaddr = NULL;
 
@@ -134,6 +134,7 @@ int findMulticastInterface()
 		{
 			//OK pour multicast
 			name = cur->ifa_name;
+			*interfaceAddr = *cur->ifa_addr;
 			break;
 		}
 		cur = cur->ifa_next;

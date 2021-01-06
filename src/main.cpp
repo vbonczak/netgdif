@@ -83,14 +83,9 @@ void background()
 {
 	if (quit)
 		return;
-	struct sockaddr_in6 servaddr;//notre adresse 
+	struct sockaddr_in6 servaddr;//notre adresse (locale)
 	int fd;	//le socket de notre connexion
-	if (setup(&servaddr, fd, multifd) < 0)
-	{
-		writeErr("Erreur fatale d'initialisation.");
-		quit = true;
-		return;
-	}
+	
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -99,8 +94,15 @@ void background()
 	int lastSendTime;
 	thread* receiver;
 	struct sockaddr_in6 client;
-
+	struct sockaddr myaddr; //notre adresse physique liée à l'interface de communication);
 	writeLine("je suis " + UUIDtoString(myId));
+
+	if (setup(&servaddr, fd, multifd, &myaddr) < 0)
+	{
+		writeErr("Erreur fatale d'initialisation.");
+		quit = true;
+		return;
+	}
 
 	while (!quit)
 	{
@@ -137,7 +139,8 @@ void background()
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
-			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
+			ADDRESS nei = mapIP((struct sockaddr_in*)&myaddr);
+			pushTLVToSend(tlvNeighbour(nei.addrIP, nei.port));
 			//Voisins symétriques
 			for (auto& entry : TVA)
 			{
@@ -324,7 +327,7 @@ void manageWarnings(list<TLV>& tlvs)
 	}
 }
 
-int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast)
+int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr* physaddr)
 {
 	struct sockaddr_in6 servaddr;
 	char host[NI_MAXHOST];
@@ -332,7 +335,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast)
 
 	/*Connexion à la socket*/
 		//La variable globale multifd sert à envoyer des paquets en multicast ipv6
-	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd);
+	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd, physaddr);
 	if (fd < 0)
 	{
 		perror("Problème de création de connexion.");
