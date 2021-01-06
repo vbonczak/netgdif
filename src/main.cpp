@@ -194,7 +194,7 @@ void receive(int fd, struct sockaddr_in6* client)
 	inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
 
 	DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
-	DEBUGHEX(rawUDP, 1024);
+	DEBUGHEX(rawUDP, rawUDP_len);
 	delete dst;
 	//sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
 	receiving = false;

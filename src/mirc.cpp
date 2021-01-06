@@ -89,7 +89,6 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			length = body[1];
 			DEBUG("Type de TLV ignoré : " + to_string(type) + " de longueur " + to_string(length));
 			DEBUGHEX(body, sz);
-			exit(0);
 			break;
 		}
 
@@ -105,7 +104,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			cout << "           REÇU" << tlvToString(curtlv) << endl;
+			cout << "       REÇU     > " << tlvToString(curtlv) << endl;
 		}
 		else
 			DEBUG(mircstrerror(ret));
