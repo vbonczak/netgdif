@@ -15,16 +15,13 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
 	if (equalsUUID(helloTLV.content.hello.sourceID, myId))
 	{
-		//Reçu de nous même dans le multicast
+		//Reçu de nous même dans le multicast (ne doit pas arriver)
 		DEBUG("reçu de nous même");
 		return;
 	}
 
-	if (TVP.find(addr) != TVP.end())
-	{
-		//On identifie l'ID de notre voisin potentiel reçu de NEIGHBOUR précédemment
-		copyUUID(helloTLV.content.hello.sourceID, TVP[addr]);
-	}
+	//On identifie l'ID de notre voisin potentiel reçu de NEIGHBOUR précédemment
+	copyUUID(helloTLV.content.hello.sourceID, TVP[addr]);
 
 	int time = GetTime();
 	if (TVA.find(addr) == TVA.end())
@@ -185,7 +182,7 @@ void Table_RefreshTVA()
 	{
 		if (time - lastHelloSent > 15000)
 		{
-			//toutes les 15 secondes, on envoie un hello court aux voisins non symétriques
+			//toutes les 15 secondes, on envoie un hello court aux voisins non symétriques aux TVP
 			/*for (ADDRESS add : nonSym)
 				pushTLVToSend(tlvHello(myId), add);*/
 			sendHello(nonSym);//MAJ : en multicast
@@ -296,7 +293,7 @@ void freeAllTables()
 		for (auto& entry2 : entry.second.toFlood)
 		{
 			inet_ntop(AF_INET6, &entry2.first.nativeAddr.sin6_addr, dest, 50);
-			cout << "à dest. de " << dest << " "<< entry2.second.first << " fois, prochain envoi à " << entry2.second.second << endl;
+			cout << "à dest. de " << dest << " " << entry2.second.first << " fois, prochain envoi à " << entry2.second.second << endl;
 
 		}
 		cout << "}\n";

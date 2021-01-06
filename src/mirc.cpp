@@ -530,6 +530,8 @@ int encodeTLV(TLV t, char* outData)
 		memcpy(outData + 2, tlv->neighbour.addrIP, 16);
 		curS = ShortToNetwork(tlv->neighbour.port);
 		memcpy(outData + 18, (char*)(&curS), 2);
+		DEBUG("Encode neighbour >>>>>>>");
+		DEBUGHEX(outData, 20);
 		break;
 	case TLV_DATA:
 		length = 14 + tlv->data.dataLen;
