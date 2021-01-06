@@ -14,6 +14,8 @@ bool receiving = false;
 
 int main(int argc, char* argv[])
 {
+	InitUtils();
+
 	/*Ctrl+C catch*/
 	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
 		return EXIT_FAILURE;
