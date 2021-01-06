@@ -257,7 +257,7 @@ void verbosehex(char* data, int l)
 {
 	for (int i = 0; i < l; i++)
 	{
-		cout << to_string(data[i]) << " ";
+		cout << to_string((unsigned char)data[i]) << " ";
 	}
 	cout << endl;
 }

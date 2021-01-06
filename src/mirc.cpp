@@ -398,6 +398,8 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		TLV cur = listSend.front();
 
 		len = encodeTLV(cur, data);
+		DEBUG("ajout du TLV :");
+		DEBUGHEX(data, len);
 		if (totalLength + len > 1024)
 		{
 			//Trop gros pour UDP
