@@ -295,7 +295,7 @@ void freeAllTables()
 		cout << "infos{\n";
 		for (auto& entry2 : entry.second.toFlood)
 		{
-			inet_ntop(AF_INET6, &entry2.first.nativeAddr, dest, 50);
+			inet_ntop(AF_INET6, &entry2.first.nativeAddr.sin6_addr, dest, 50);
 			cout << "à dest. de " << dest << entry2.second.first << "fois, prochain envoi à " << entry2.second.second << endl;
 
 		}
@@ -304,13 +304,13 @@ void freeAllTables()
 	cout << "TVA\n";
 	for (auto& entry : TVA)
 	{
-		inet_ntop(AF_INET6, &entry.first.nativeAddr, dest, 50);
+		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
 		cout << "Voisin actif " << dest << (entry.second.symmetrical ? " Sym " : " ") << endl;
 	}
 	cout << "TVP\n";
 	for (auto& entry : TVP)
 	{
-		inet_ntop(AF_INET6, &entry.first.nativeAddr, dest, 50);
+		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
 		cout << "Voisin potentiel " << dest << " d'Id " << UUIDtoString(entry.second) << endl;
 	}
 	delete dest;
