@@ -13,7 +13,6 @@ int minSymNeighbours = 10;
 
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	if (length <= 3)
 		return PARSE_EEMPTY;
 
@@ -34,7 +33,6 @@ int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 
 int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	unsigned short bodyLength = ShortFromNetwork(*((unsigned short*)data));
 	 
 	if (length > bodyLength + 2)
@@ -275,6 +273,7 @@ TLV tlvHello(UUID sender, UUID dest)
 
 TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_NEIGHBOUR);
 	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
 	ret.content.neighbour.port = port;
@@ -283,6 +282,7 @@ TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 
 TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_DATA);
 	ret.content.data.data = new char[length];
 	memcpy(ret.content.data.data, data, length);
@@ -294,6 +294,7 @@ TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 
 TLV tlvAck(TLV& data)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_ACK);
 	ret.content.ack.nonce = data.content.data.nonce;
 	copyUUID(data.content.data.senderID, ret.content.ack.senderID);
@@ -302,6 +303,7 @@ TLV tlvAck(TLV& data)
 
 TLV tlvPadN(unsigned char len)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_PADN);
 	ret.content.padN.len = len;
 	ret.content.padN.MBZ = new char[len];
@@ -314,6 +316,7 @@ TLV tlvPadN(unsigned char len)
 
 TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_GOAWAY);
 	ret.content.goAway.code = code;
 	ret.content.goAway.message = new char[messageLength];
@@ -324,6 +327,7 @@ TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 
 TLV tlvWarning(unsigned char length, const char* message)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_WARNING);
 	ret.content.warning.message = new char[length];
 	memcpy(ret.content.warning.message, message, length);
@@ -341,6 +345,7 @@ void pushTLVDATAToFlood(TLV tlv)
 
 void pushPendingForFlood()
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	pendingForFloodLock.lock();
 	for (TLV tlv : pendingForFlood)
 	{
@@ -424,6 +429,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, 1024, 0, (struct sockaddr*)(&address.nativeAddr), l);
+		DEBUG("Envoi effectif de " + to_string(len) + " octets");
 	}
 }
 

@@ -13,8 +13,6 @@ int DATA_LIFETIME = 3 * MINUTE;
 
 void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
-
 	if (equalsUUID(helloTLV.content.hello.sourceID, myId))
 	{
 		//Reçu de nous même dans le multicast
@@ -148,7 +146,6 @@ void Table_CleanRR()
 
 void Table_RefreshTVA()
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	static int lastHelloSent = 0;
 	static int lastLongHelloSent = 0;
 	int time = GetTime();
@@ -210,7 +207,6 @@ void Table_RefreshTVA()
 
 void Flood()
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	int time = GetTime();
 	for (auto& entry : RR)
 	{
@@ -238,6 +234,7 @@ void Flood()
 						time + RandomInt(//entre 2^n et 2^{n+1}
 							1000 * (1 << (dest.second.first)),
 							1000 * (1 << (dest.second.first + 1))) };
+					DEBUG("Envoi num" + to_string(dest.second.first));
 				}
 			}
 		}
@@ -246,7 +243,6 @@ void Flood()
 
 void sendHello(list<ADDRESS>& nonSym)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	if (multifd > 0)
 	{
 		TLV h = tlvHello(myId);
@@ -270,7 +266,6 @@ void sendHello(list<ADDRESS>& nonSym)
 
 void eraseFromTVA(const ADDRESS& addr)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	TVA.erase(addr);
 	//On enlève aussi les clés des gens à inonder de RR
 	for (auto& entry : RR)
@@ -284,7 +279,6 @@ void eraseFromTVA(const ADDRESS& addr)
 
 void freeAllTables()
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	for (auto& entry : RR)
 	{
 		freeTLV(entry.second.tlv);
