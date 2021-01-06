@@ -87,7 +87,7 @@ void background()
 		return;
 	struct sockaddr_in6 servaddr;
 	int fd = setup(&servaddr);
- 
+
 
 
 	int time = 0;
@@ -117,7 +117,7 @@ void background()
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
 			manageDatagram(dgram, ad);
-			
+
 			rawUDP_read = true; //nous l'avons lu
 		}
 
@@ -127,7 +127,7 @@ void background()
 			receiver = new thread(receive, fd, &client);
 			receiving = true;
 		}
-		
+
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
 			pushTLVToSend(tlvNeighbour((char*)servaddr.sin6_addr.s6_addr, servaddr.sin6_port));
@@ -162,7 +162,7 @@ void background()
 				sendPendingTLVs(fd, entry.first);
 			}
 		}
-		
+
 		sleep(1);
 	}
 
@@ -185,7 +185,12 @@ void receive(int fd, struct sockaddr_in6* client)
 	socklen_t len = sizeof(*client);
 	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
 	rawUDP_read = false;
+	char* dst = new char[100];
 
+	inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
+
+	DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
+	delete dst;
 	//sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
 	receiving = false;
 }

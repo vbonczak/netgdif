@@ -234,7 +234,7 @@ void Flood()
 						time + RandomInt(//entre 2^n et 2^{n+1}
 							1000 * (1 << (dest.second.first)),
 							1000 * (1 << (dest.second.first + 1))) };
-					DEBUG("Envoi num" + to_string(dest.second.first));
+					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
 				}
 			}
 		}
