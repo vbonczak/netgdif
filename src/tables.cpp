@@ -13,6 +13,15 @@ int DATA_LIFETIME = 3 * MINUTE;
 
 void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
+
+	if (equalsUUID(helloTLV.content.hello.sourceID, myId))
+	{
+		//Reçu de nous même dans le multicast
+		DEBUG("reçu de nous même");
+		return;
+	}
+
 	if (TVP.find(addr) != TVP.end())
 	{
 		//On identifie l'ID de notre voisin potentiel reçu de NEIGHBOUR précédemment
@@ -46,6 +55,7 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 
 void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	//Uniquement de la part des voisins connus ET symétriques
 	if (TVA.find(from) == TVA.end())
 		return;
@@ -105,6 +115,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 
 void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLVAck ack = ackTLV.content.ack;
 	DATAID i;
 	copyUUID(ack.senderID, i.id);
@@ -122,6 +133,7 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 
 void Table_CleanRR()
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	list<DATAID> toRemove;
 	int time = GetTime();
 	for (auto& entry : RR)
@@ -136,6 +148,7 @@ void Table_CleanRR()
 
 void Table_RefreshTVA()
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	static int lastHelloSent = 0;
 	static int lastLongHelloSent = 0;
 	int time = GetTime();
@@ -197,6 +210,7 @@ void Table_RefreshTVA()
 
 void Flood()
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	int time = GetTime();
 	for (auto& entry : RR)
 	{
@@ -232,6 +246,7 @@ void Flood()
 
 void sendHello(list<ADDRESS>& nonSym)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (multifd > 0)
 	{
 		TLV h = tlvHello(myId);
@@ -255,6 +270,7 @@ void sendHello(list<ADDRESS>& nonSym)
 
 void eraseFromTVA(const ADDRESS& addr)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TVA.erase(addr);
 	//On enlève aussi les clés des gens à inonder de RR
 	for (auto& entry : RR)
@@ -268,12 +284,15 @@ void eraseFromTVA(const ADDRESS& addr)
 
 void freeAllTables()
 {
-
+	DEBUG(string(__PRETTY_FUNCTION__));
 	for (auto& entry : RR)
 	{
 		freeTLV(entry.second.tlv);
 		entry.second.toFlood.clear();
 	}
+
+	DEBUG("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
+		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
 
 	TVA.clear();
 	TVP.clear();

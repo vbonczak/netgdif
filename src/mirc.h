@@ -66,7 +66,7 @@ int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content);
 /// <param name="sz"></param>
 /// <param name="content">Une référence vers un objet datagramme MIRC initialisé à l'aide de dgramInit().</param>
 /// <returns></returns>
-int parseTLVCollection(char* data, unsigned int sz, MIRC_DGRAM& content);
+int parseTLVCollection(char* data, unsigned short sz, MIRC_DGRAM& content);
 
 /*
 Les fonctions parseTLV_* prennent en paramètre les données décalées de 1 (pour

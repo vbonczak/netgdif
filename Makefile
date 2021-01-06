@@ -4,7 +4,7 @@ SRC:=$(wildcard  $(SRCDIR)/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEPS := $(OBJ:.o=.d)
 
-CXXFLAGS += -MMD -MP -Wno-write-strings
+CXXFLAGS += -std=c++14 -MMD -MP -Wno-write-strings
 
 LIBS = -lpthread 
 

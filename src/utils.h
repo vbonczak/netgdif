@@ -58,7 +58,9 @@ void InitUtils();
 
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
+#define DEBUGHEX(x,y)	verbosehex(x,y)
 void verbose(string msg);
+void verbosehex(char* data, int l);
 #else
 #define DEBUG(x)	 
 #endif

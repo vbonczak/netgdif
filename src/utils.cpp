@@ -47,13 +47,12 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 		//Multicast non disponible
 		multifd = -1;
 	}
+
 	//Multicast
 	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
 		perror("Attachement socket IPv6 impossible");
 		return -1;
 	}
-
-
 
 	if (p_addr != NULL)
 		getsockname(fd, (struct sockaddr*)p_addr, &len_p_addr);
@@ -76,11 +75,11 @@ int setupMulticast(int fd)
 	/*Configuration du socket multicast*/
 	int optval = 1;
 	setsockopt(multifd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-	setsockopt(multifd, SOL_SOCKET, IPV6_V6ONLY, &optval, sizeof(optval));
-	setsockopt(multifd, SOL_SOCKET, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
-	setsockopt(multifd, SOL_SOCKET, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(multifd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
+	setsockopt(multifd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(multifd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
 	optval = 0;
-	setsockopt(multifd, SOL_SOCKET, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
+	setsockopt(multifd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
 
 
 	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on écrive dans le vide*/
@@ -143,7 +142,7 @@ int findMulticastInterface()
 	int ret = 0;
 	if (name != NULL)
 		ret = if_nametoindex(name);
-	cout << "trouvé" << name << endl;
+	DEBUG("Interface sélectionnée : " + string(name));
 	freeifaddrs(ifaddr);
 
 	return ret;
@@ -226,8 +225,15 @@ void writeErr(string line)
 
 #ifdef VERBOSE
 
-void verbose(string msg) { cout << "DEBUG : " << msg << endl; }
+void verbose(string msg) { cout << "[Debug t = " << GetTime() << "]" << msg << endl; }
 
-
+void verbosehex(char* data, int l)
+{
+	for (int i = 0; i < l; i++)
+	{
+		cout << to_string(data[i]) << " ";
+	}
+	cout << endl;
+}
 
 #endif

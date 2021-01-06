@@ -81,9 +81,13 @@ void sendMessage(string msg)
 
 void background()
 {
+	if (quit)
+		return;
 	struct sockaddr_in6 servaddr;
 	int fd = setup(&servaddr);
  
+
+
 	int time = 0;
 	int lastNeighbourSentTime = 0;
 	int lastCleanedTime = 0;

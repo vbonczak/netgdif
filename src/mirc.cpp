@@ -13,6 +13,7 @@ int minSymNeighbours = 10;
 
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (length <= 3)
 		return PARSE_EEMPTY;
 
@@ -33,7 +34,9 @@ int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 
 int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 {
-	unsigned int bodyLength = ShortFromNetwork(*((unsigned short*)data));
+	DEBUG(string(__PRETTY_FUNCTION__));
+	unsigned short bodyLength = ShortFromNetwork(*((unsigned short*)data));
+	 
 	if (length > bodyLength + 2)
 	{
 		return PARSE_ETOOBIG;
@@ -44,17 +47,20 @@ int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 	}
 }
 
-int parseTLVCollection(char* body, unsigned int sz, MIRC_DGRAM& content)
+int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
+	 
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
-
+	 
 	unsigned int length = 0;
 	int ret = 0;
 	while (sz > 0)
 	{
 		TLV_data cur;
 		char type = body[0];
+		
 		switch (type)
 		{
 		case TLV_PAD1:				/*Silencieusement ignoré*/
@@ -83,9 +89,16 @@ int parseTLVCollection(char* body, unsigned int sz, MIRC_DGRAM& content)
 			break;
 		default:
 			length = body[1];
-			DEBUG("Type de TLV ignoré");
+			DEBUG("Type de TLV ignoré : " + to_string(type) + " de longueur " + to_string(length));
+			DEBUGHEX(body, sz);
+			exit(0);
 			break;
 		}
+
+		//Chaque TLV sauf PAD1 est construit sur le schéma TYPE LONGUEUR (deux octets)
+		if (type != TLV_PAD1)
+			length += 2;
+
 		body += length;
 		sz -= length;
 		if (ret == 0 && type != TLV_PADN)
@@ -103,6 +116,7 @@ int parseTLVCollection(char* body, unsigned int sz, MIRC_DGRAM& content)
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -124,6 +138,7 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 
 int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
 
@@ -149,6 +164,7 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 
 int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -164,6 +180,7 @@ int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, 
 
 int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -184,6 +201,7 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 
 int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -202,6 +220,7 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_da
 
 int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -220,6 +239,7 @@ int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV
 
 int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -236,6 +256,7 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 
 TLV tlvHello(UUID sender)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = false;
@@ -244,6 +265,7 @@ TLV tlvHello(UUID sender)
 
 TLV tlvHello(UUID sender, UUID dest)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = true;
@@ -311,6 +333,7 @@ TLV tlvWarning(unsigned char length, const char* message)
 
 void pushTLVDATAToFlood(TLV tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	pendingForFloodLock.lock();
 	pendingForFlood.push_back(tlv);
 	pendingForFloodLock.unlock();
@@ -339,11 +362,13 @@ void pushPendingForFlood()
 
 void pushTLVToSend(TLV tlv, const ADDRESS& dest)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	toSend[dest].push_back(tlv);
 }
 
 void pushTLVToSend(TLV tlv)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	for (auto& entry : TVA)
 	{
 		pushTLVToSend(tlv, entry.first);
@@ -352,6 +377,8 @@ void pushTLVToSend(TLV tlv)
 
 void sendPendingTLVs(int fd, const ADDRESS& address)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
+	Flood();
 	list<TLV>& listSend = toSend[address];
 	//taille avec l'entête MIRC
 
