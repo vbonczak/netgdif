@@ -58,7 +58,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 	{
 		TLV_data cur;
 		char type = body[0];
-
+		
 		switch (type)
 		{
 		case TLV_PAD1:				/*Silencieusement ignoré*/
@@ -105,6 +105,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
+			cout << "           REÇU" << tlvToString(curtlv) << endl;
 		}
 		else
 			DEBUG(mircstrerror(ret));
