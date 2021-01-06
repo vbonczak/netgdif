@@ -40,7 +40,7 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from);
 void manageWarnings(list<TLV>& tlvs);
 
 
-int setup(struct sockaddr_in6*);
+int setup(struct sockaddr_in6*, int& fd, int& mfd);
 
 int sigaction_wrapper(int signum, handler_t* handler);
 

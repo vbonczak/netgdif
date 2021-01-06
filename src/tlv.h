@@ -19,6 +19,7 @@ using namespace std;
 #define TLV_WARNING			7
 #define TLV_MaxType			7
 
+#define TLV_MAXSIZE			257
 typedef char UUID[8];
 
 string UUIDtoString(UUID u);

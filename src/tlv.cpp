@@ -63,7 +63,7 @@ string tlvToString(TLV& tlv)
 		ret += "PadN(" + to_string(dt.padN.len) + ")";
 		break;
 	case TLV_HELLO:
-		ret += "TLV_HELLO de " + UUIDtoString(dt.hello.destID) + (dt.hello.longFormat ? UUIDtoString(dt.hello.destID) : "(court)");
+		ret += "TLV_HELLO de " + UUIDtoString(dt.hello.destID) + "  "+ (dt.hello.longFormat ? UUIDtoString(dt.hello.destID) : "(court)");
 		break;
 	case TLV_NEIGHBOUR:
 		dest = new char[50]{ 0 };

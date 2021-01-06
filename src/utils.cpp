@@ -4,7 +4,7 @@ int multifd = -1;
 string multiIP = "ff02::4242:4242";
 struct sockaddr_in6 multiaddr;
 
-int NewSocket(int type, int port, struct sockaddr* p_addr)
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast)
 {
 	/*// OPEN
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -42,10 +42,11 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 	addr.sin6_family = AF_INET6;
 	addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
-	if (setupMulticast(fd) != 0)
+
+	if (setupMulticast(fd, fd_multicast) != 0)
 	{
 		//Multicast non disponible
-		multifd = -1;
+		fd_multicast = -1;
 	}
 
 	//Multicast
@@ -61,12 +62,12 @@ int NewSocket(int type, int port, struct sockaddr* p_addr)
 }
 
 
-int setupMulticast(int fd)
+int setupMulticast(int fd, int& fd_multicast)
 {
 	/*Connexion à la socket*/
-	multifd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	fd_multicast = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-	if (multifd < 0)
+	if (fd_multicast < 0)
 	{
 		perror("Creation de socket impossible");
 		return -1;
@@ -74,12 +75,12 @@ int setupMulticast(int fd)
 
 	/*Configuration du socket multicast*/
 	int optval = 1;
-	setsockopt(multifd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
-	setsockopt(multifd, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
-	setsockopt(multifd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
-	setsockopt(multifd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(fd_multicast, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
+	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
+	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
 	optval = 0;
-	setsockopt(multifd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
+	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
 
 
 	signal(SIGPIPE, SIG_IGN); /*MacOS : Ignorer le fait qu'on écrive dans le vide*/
@@ -92,20 +93,18 @@ int setupMulticast(int fd)
 	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
 	multiaddr.sin6_scope_id = findMulticastInterface();
 
-	if (bind(multifd, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
+	if (bind(fd_multicast, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
 		perror("Attachement socket multicast IPv6 impossible");
 		strerror(errno);
 		return -1;
 	}
 
 	/*Joindre le groupe multicast*/
-	struct ipv6_mreq multicastRequest;  /* Multicast address join structure */
-		/* Specify the multicast group */
-	memcpy(&multicastRequest.ipv6mr_multiaddr,
-		&multiaddr.sin6_addr,
-		sizeof(multicastRequest.ipv6mr_multiaddr));
+	struct ipv6_mreq multicastRequest;   
+		 
+	memcpy(&multicastRequest.ipv6mr_multiaddr, &multiaddr.sin6_addr, sizeof(multicastRequest.ipv6mr_multiaddr));
 
-	/* Accept multicast from any interface */
+	//Même interface que le socket fd_multicast
 	multicastRequest.ipv6mr_interface = multiaddr.sin6_scope_id;
 	/* Join the multicast address */
 	if (setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &multicastRequest, sizeof(multicastRequest)) != 0)

@@ -1,8 +1,6 @@
 #include "main.h"
-#include "tuto.h"
 
 /*Quelques variables globales*/
-
 //Le surnom
 string nickname;
 
@@ -85,10 +83,14 @@ void background()
 {
 	if (quit)
 		return;
-	struct sockaddr_in6 servaddr;
-	int fd = setup(&servaddr);
-
-
+	struct sockaddr_in6 servaddr;//notre adresse 
+	int fd;	//le socket de notre connexion
+	if (setup(&servaddr, fd, multifd) < 0)
+	{
+		writeErr("Erreur fatale d'initialisation.");
+		quit = true;
+		return;
+	}
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -315,18 +317,19 @@ void manageWarnings(list<TLV>& tlvs)
 	}
 }
 
-int setup(struct sockaddr_in6* addr)
+int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast)
 {
 	struct sockaddr_in6 servaddr;
 	char host[NI_MAXHOST];
 	char service[NI_MAXSERV];
 
 	/*Connexion à la socket*/
-	int fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr);
+		//La variable globale multifd sert à envoyer des paquets en multicast ipv6
+	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd);
 	if (fd < 0)
 	{
 		perror("Problème de création de connexion.");
-		exit(2);
+		return -1;
 	}
 
 	/*Coordonnées du serveur*/
@@ -345,7 +348,7 @@ int setup(struct sockaddr_in6* addr)
 		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin6_port));
 	*addr = servaddr;
 
-	return fd;
+	return 0;
 }
 
 /*

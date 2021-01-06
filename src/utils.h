@@ -1,6 +1,6 @@
 #ifndef UTILS_H
 #define UTILS_H
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -86,19 +86,13 @@ int GetTime();
 /// Retourne le descripteur de fichier socket correspondant aux informations de connexion.
 /// </summary>
 /// <param name="domain">Une des constantes de la forme AF_*</param>
-/// <param name="type">SOCK_STREAM pour TCP, SOCK_DGRAM pour UDP</param>
 /// <param name="port">Le port</param>
 /// <param name="p_addr">Champ rempli par cette fonction contenant l'adresse obtenue.</param>
+/// <param name="mfd">Descripteur de fichier correspondant au socket multicast.</param>
 /// <returns></returns>
-int NewSocket(int type, int port, struct sockaddr* p_addr);
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& mfd);
 
-/// <summary>
-/// Créée un socket multicast pour l'envoi des Hellos, et connecte le socket standard
-/// pour recevoir des messages du même groupe multicast.
-/// </summary>
-/// <param name="fd"></param>
-/// <returns></returns>
-int setupMulticast(int fd);
+
 
 /// <summary>
 /// 
@@ -114,6 +108,14 @@ unsigned short ShortFromNetwork(unsigned short netshort);
 unsigned short ShortToNetwork(unsigned short localshort);
 
 char* RandomBytes(int size);
+
+/// <summary>
+/// Créée un socket multicast pour l'envoi des Hellos, et connecte le socket standard
+/// pour recevoir des messages du même groupe multicast.
+/// </summary>
+/// <param name="fd"></param>
+/// <returns></returns>
+int setupMulticast(int fd, int& fd_multicast);
 
 int findMulticastInterface();
 
