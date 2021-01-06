@@ -143,7 +143,6 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 	if (body[0] == 8) /*Format court*/
 	{
 		memcpy(tlv.hello.sourceID, body + 1, 8);
-		DEBUG("court de " + UUIDtoString(tlv.hello.sourceID));
 		tlv.hello.longFormat = false;
 	}
 	else if (body[0] == 16)

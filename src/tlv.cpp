@@ -63,12 +63,12 @@ string tlvToString(TLV& tlv)
 		ret += "PadN(" + to_string(dt.padN.len) + ")";
 		break;
 	case TLV_HELLO:
-		ret += "TLV_HELLO de " + UUIDtoString(dt.hello.destID) + "  "+ (dt.hello.longFormat ? UUIDtoString(dt.hello.destID) : "(court)");
+		ret += "TLV_HELLO de " + UUIDtoString(dt.hello.sourceID) + "  "+ (dt.hello.longFormat ? UUIDtoString(dt.hello.destID) : "(court)");
 		break;
 	case TLV_NEIGHBOUR:
 		dest = new char[50]{ 0 };
 		r = address2IP(dt.neighbour.addrIP, dt.neighbour.port);
-		inet_ntop(AF_INET6, (struct sockaddr_in*)&r, dest, 50);
+		inet_ntop(AF_INET6, (struct sockaddr_in*)&r.sin6_addr, dest, 50);
 		ret += "TLV_NEIGHBOUR indiquant " + string(dest);
 		delete dest;
 		break;
