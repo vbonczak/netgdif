@@ -424,7 +424,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		memcpy(buf + totalLength, data, len);
 		break;
 	}
-
+	totalLength = 1024;
 	//On n'envoie pas de paquet uniquement de remplissage.
 	if (totalLength > 0)
 	{
@@ -435,7 +435,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		char* dest = new char[50]{ 0 };
 		inet_ntop(AF_INET6, &address.nativeAddr.sin6_addr, dest, 50);
 
-		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets à " + string(dest) + ": ");
+		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets nets à " + string(dest) + ": ");
 		DEBUGHEX(buf, 1024);
 		delete dest;
 	}
