@@ -296,7 +296,7 @@ void freeAllTables()
 		for (auto& entry2 : entry.second.toFlood)
 		{
 			inet_ntop(AF_INET6, &entry2.first.nativeAddr.sin6_addr, dest, 50);
-			cout << "à dest. de " << dest << entry2.second.first << "fois, prochain envoi à " << entry2.second.second << endl;
+			cout << "à dest. de " << dest << " "<< entry2.second.first << " fois, prochain envoi à " << entry2.second.second << endl;
 
 		}
 		cout << "}\n";

@@ -58,7 +58,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 	{
 		TLV_data cur;
 		char type = body[0];
-		
+
 		switch (type)
 		{
 		case TLV_PAD1:				/*Silencieusement ignoré*/
@@ -386,13 +386,14 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 	DEBUG(string(__PRETTY_FUNCTION__));
 	Flood();
 	list<TLV>& listSend = toSend[address];
-	//taille avec l'entête MIRC
 
+	//Paquet envoyé
 	char buf[1024] = { MIRC_MAGIC,0 };
+	//Les TLV en cours
 	char data[1024];
 	int totalLength = 4;//entête MIRC
+	//Longueur du TLV en cours
 	int len = 0;
-
 	while (totalLength < 1024 && !listSend.empty())
 	{
 		TLV cur = listSend.front();
@@ -424,13 +425,19 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		break;
 	}
 
+	//On n'envoie pas de paquet uniquement de remplissage.
 	if (totalLength > 0)
-	{ //On n'envoie pas de paquet uniquement de remplissage.
+	{
 		unsigned short len = ShortToNetwork(totalLength - 4);
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, 1024, 0, (struct sockaddr*)(&address.nativeAddr), l);
-		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets");
+		char* dest = new char[50]{ 0 };
+		inet_ntop(AF_INET6, &address.nativeAddr.sin6_addr, dest, 50);
+
+		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets à " + string(dest) + ": ");
+		DEBUGHEX(buf, 1024);
+		delete dest;
 	}
 }
 
