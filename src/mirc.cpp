@@ -273,7 +273,8 @@ TLV tlvHello(UUID sender, UUID dest)
 
 TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
+	DEBUG(string(__PRETTY_FUNCTION__) + "addrIP ===");
+	DEBUGHEX(const_cast<char*>(addrIP), 16);
 	TLV ret(TLV_NEIGHBOUR);
 	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
 	ret.content.neighbour.port = port;
