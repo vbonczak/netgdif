@@ -99,10 +99,11 @@ void background()
 	int lastSendTime;
 	thread* receiver;
 	struct sockaddr_in6 client;
+
+	writeLine("je suis " + UUIDtoString(myId));
+
 	while (!quit)
 	{
-		writeLine("tour de boucle");
-
 		time = GetTime();
 
 		if (!rawUDP_read)
@@ -170,6 +171,12 @@ void background()
 		}
 
 		sleep(1);
+	}
+
+	pushTLVToSend(tlvGoAway(TLV_GOAWAY_QUIT, 22, "Bye bye, see you soon"));
+	for (auto& entry : TVA)
+	{
+		sendPendingTLVs(fd, entry.first);
 	}
 
 	shutdown(fd, SHUT_RDWR); //pour que recv retourne immédiatement
