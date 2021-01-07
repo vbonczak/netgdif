@@ -17,6 +17,8 @@
 #include <net/if.h>
 #include <ifaddrs.h>
 
+#include <ncurses.h>
+
 using namespace std;
 
 #define MULTICAST_PORT	1212
@@ -61,6 +63,8 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port);
 
 void InitUtils();
 
+void QuitUtils();
+
 #define VERBOSE
 
 #ifdef VERBOSE
@@ -91,7 +95,7 @@ int GetTime();
 /// <param name="mfd">Descripteur de fichier correspondant au socket multicast.</param>
 /// <param name="physaddr">L'adresse physique de notre interface.</param>
 /// <returns></returns>
-int NewSocket(int type, int port, struct sockaddr* p_addr, int& mfd,struct sockaddr* physaddr);
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& mfd,struct sockaddr_in6* physaddr);
 
 
 
@@ -116,14 +120,14 @@ char* RandomBytes(int size);
 /// </summary>
 /// <param name="fd"></param>
 /// <returns></returns>
-int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr);
+int setupMulticast(int fd, int& fd_multicast, struct sockaddr_in6* myInterfaceAddr);
 
 /// <summary>
 /// 
 /// </summary>
 /// <param name="interfaceAddr"></param>
 /// <returns></returns>
-int findMulticastInterface(struct sockaddr* interfaceAddr);
+int findMulticastInterface(struct sockaddr_in6* interfaceAddr);
 
 /// <summary>
 /// Retourne un entier aléatoire entre min et max.
@@ -142,4 +146,10 @@ unsigned int GetNonce(string message);
 void writeLine(string line);
 
 void writeErr(string line);
+string readLine();
+string readLine(string inputText);
+void refreshWin();
+
+extern WINDOW* winput;
+extern WINDOW* woutput;
 #endif

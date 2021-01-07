@@ -6,7 +6,7 @@ DEPS := $(OBJ:.o=.d)
 
 CXXFLAGS += -std=c++14 -MMD -MP -Wno-write-strings
 
-LIBS = -lpthread 
+LIBS = -lpthread  -lncurses 
 
 all: CXXFLAGS += -g
 all: netgdif

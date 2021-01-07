@@ -10,43 +10,47 @@ int rawUDP_len = 0;
 bool rawUDP_read = true;
 bool receiving = false;
 
+
+
 int main(int argc, char* argv[])
 {
 	InitUtils();
-
-	/*Ctrl+C catch*/
-	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
-		return EXIT_FAILURE;
-
-	copyUUID(RandomBytes(8), myId);
-	writeLine("Entrez votre pseudo : ");
-	getline(cin, nickname);
+	InitMain();
 
 	thread back(background);
 
-	string line = "";
+	string line;
 
 	while (!quit)
 	{
-		getline(cin, line);
+		line = readLine();
+
 		if (quit)
 			break;
 		if (!line.empty())
 		{
 			parseLine(line);
 		}
-
-		if (!cin)
-		{
-			quit = true;
-		}
 	}
 
 	back.join();
 
+	QuitUtils();
+
 	return EXIT_SUCCESS;
 }
 
+
+void InitMain()
+{
+	//Ctrl+C pour arrêter
+	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
+		exit(EXIT_FAILURE);
+
+	copyUUID(RandomBytes(8), myId);
+
+	nickname = readLine("Entrez votre pseudo : ");
+}
 
 void parseLine(string line)
 {
@@ -85,7 +89,7 @@ void background()
 		return;
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
 	int fd;	//le socket de notre connexion
-	
+
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -94,7 +98,7 @@ void background()
 	int lastSendTime;
 	thread* receiver;
 	struct sockaddr_in6 client;
-	struct sockaddr myaddr; //notre adresse physique liée à l'interface de communication);
+	struct sockaddr_in6 myaddr; //notre adresse physique liée à l'interface de communication);
 	writeLine("je suis " + UUIDtoString(myId));
 
 	if (setup(&servaddr, fd, multifd, &myaddr) < 0)
@@ -103,7 +107,9 @@ void background()
 		quit = true;
 		return;
 	}
-
+	//char str_buffer[150] = { 0 };
+	//inet_ntop(AF_INET6, &(myaddr.sin6_addr), str_buffer, 150);
+	//DEBUG(str_buffer);
 	while (!quit)
 	{
 		time = GetTime();
@@ -121,10 +127,9 @@ void background()
 			MIRC_DGRAM dgram;
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
-			char res[60];
-			inet_ntop(AF_INET6, (void*)(&ad.nativeAddr.sin6_addr), res, 60);
 
-			DEBUG("mapIP dit " + string(res));
+			//inet_ntop(AF_INET6, (void*)(&ad.nativeAddr.sin6_addr), str_buffer, 150);
+
 			manageDatagram(dgram, ad);
 
 			rawUDP_read = true; //nous l'avons lu
@@ -162,9 +167,8 @@ void background()
 		//Remplissage des messages de l'utilisateur courant
 		pushPendingForFlood();
 
-		if (time - lastSendTime > 5000)
+		if (time - lastSendTime > 1500)
 		{
-			writeLine("Envoi des TLVs en attente");
 			lastSendTime = time;
 			//Envoi effectif des paquets UDP vers leurs destinataires respectifs.
 			for (auto& entry : TVA)
@@ -207,8 +211,7 @@ void receive(int fd, struct sockaddr_in6* client)
 
 	DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
 	DEBUGHEX(rawUDP, rawUDP_len);
-	delete dst;
-	//sendto(fd, "Recu", 5, 0, (struct sockaddr*)client, sizeof(*client));
+	delete[] dst;
 	receiving = false;
 }
 
@@ -327,7 +330,7 @@ void manageWarnings(list<TLV>& tlvs)
 	}
 }
 
-int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr* physaddr)
+int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr_in6* physaddr)
 {
 	struct sockaddr_in6 servaddr;
 	char host[NI_MAXHOST];
@@ -338,7 +341,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd, physaddr);
 	if (fd < 0)
 	{
-		perror("Problème de création de connexion.");
+		writeErr("Problème de création de connexion.");
 		return -1;
 	}
 
@@ -350,12 +353,8 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 		char* dst = new char[100];
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
-			writeErr(strerror(errno));
-
-		printf("Serveur lancé à l'adresse %s:%d\n", dst, ntohs(servaddr.sin6_port));
-	}
-	else
-		printf("Serveur local sur le port %d\n", ntohs(servaddr.sin6_port));
+			writeErr("Erreur");
+	} 
 	*addr = servaddr;
 
 	return 0;

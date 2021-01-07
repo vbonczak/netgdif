@@ -6,12 +6,10 @@
 #include "mirc.h"
 #include <thread>
 
-
 bool quit = false;
 typedef void handler_t(int);
 using namespace std;
-
-
+void InitMain();
 
 void parseLine(string line);
 
@@ -40,7 +38,7 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from);
 void manageWarnings(list<TLV>& tlvs);
 
 
-int setup(struct sockaddr_in6*, int& fd, int& mfd, struct sockaddr* physaddr);
+int setup(struct sockaddr_in6*, int& fd, int& mfd, struct sockaddr_in6* physaddr);
 
 int sigaction_wrapper(int signum, handler_t* handler);
 

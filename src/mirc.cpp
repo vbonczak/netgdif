@@ -47,8 +47,6 @@ int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
 
 int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
-
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -94,7 +92,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 
 		//Chaque TLV sauf PAD1 est construit sur le schéma TYPE LONGUEUR (deux octets)
 		if (type != TLV_PAD1)
-			length += 2;
+			length += 1;
 
 		body += length;
 		sz -= length;
@@ -104,7 +102,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			cout << "       REÇU     > " << tlvToString(curtlv) << endl;
+			DEBUG("       REÇU     > " + tlvToString(curtlv));
 		}
 		else
 			DEBUG(mircstrerror(ret));
@@ -113,8 +111,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 }
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -129,14 +126,13 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 			return PARSE_EINVALID;
 	}
 
-	*parsedLength = lgt;	/*Conversion sans perte*/
+	*parsedLength = lgt + 1;	/*Conversion sans perte*/
 
 	return 0;
 }
 
 int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
 
@@ -155,14 +151,13 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 	else
 		return PARSE_EINVALID;
 
-	*parsedLength = body[0];
+	*parsedLength = body[0] + 1;
 
 	return 0;
 }
 
 int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -173,12 +168,14 @@ int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, 
 	tlv.neighbour.port = port;
 	/*l'IP se situe de 1 à 16 inclus*/
 	memcpy(tlv.neighbour.addrIP, body + 1, 16);
+
+	*parsedLength = 19;
+
 	return 0;
 }
 
 int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -194,12 +191,13 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	tlv.data.data = new char[len - 12];
 	memcpy(tlv.data.data, body + 13, len - 12);
 
+	*parsedLength = len + 1;
+
 	return 0;
 }
 
 int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -213,12 +211,13 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_da
 
 	tlv.ack.nonce = nonce;
 
+	*parsedLength = len + 1;
+
 	return 0;
 }
 
 int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -232,12 +231,13 @@ int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV
 	memcpy(tlv.goAway.message, body + 2, len - 1);
 	tlv.goAway.messageLength = len - 1;
 
+	*parsedLength = len + 1;
+
 	return 0;
 }
 
 int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -249,12 +249,14 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 	tlv.warning.message = new char[len];
 	memcpy(tlv.warning.message, body + 1, len);
 	tlv.warning.length = len;
+
+	*parsedLength = len + 1;
+
 	return 0;
 }
 
 TLV tlvHello(UUID sender)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = false;
@@ -262,8 +264,7 @@ TLV tlvHello(UUID sender)
 }
 
 TLV tlvHello(UUID sender, UUID dest)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = true;
@@ -272,9 +273,7 @@ TLV tlvHello(UUID sender, UUID dest)
 }
 
 TLV tlvNeighbour(const char addrIP[16], unsigned short port)
-{
-	DEBUG(string(__PRETTY_FUNCTION__) + "addrIP ===");
-	DEBUGHEX(const_cast<char*>(addrIP), 16);
+{ 
 	TLV ret(TLV_NEIGHBOUR);
 	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
 	ret.content.neighbour.port = port;
@@ -283,7 +282,6 @@ TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 
 TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_DATA);
 	ret.content.data.data = new char[length];
 	memcpy(ret.content.data.data, data, length);
@@ -295,7 +293,6 @@ TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 
 TLV tlvAck(TLV& data)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_ACK);
 	ret.content.ack.nonce = data.content.data.nonce;
 	copyUUID(data.content.data.senderID, ret.content.ack.senderID);
@@ -303,8 +300,7 @@ TLV tlvAck(TLV& data)
 }
 
 TLV tlvPadN(unsigned char len)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	TLV ret(TLV_PADN);
 	ret.content.padN.len = len;
 	ret.content.padN.MBZ = new char[len];
@@ -317,7 +313,6 @@ TLV tlvPadN(unsigned char len)
 
 TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	TLV ret(TLV_GOAWAY);
 	ret.content.goAway.code = code;
 	ret.content.goAway.message = new char[messageLength];
@@ -327,8 +322,7 @@ TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 }
 
 TLV tlvWarning(unsigned char length, const char* message)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	TLV ret(TLV_WARNING);
 	ret.content.warning.message = new char[length];
 	memcpy(ret.content.warning.message, message, length);
@@ -337,16 +331,15 @@ TLV tlvWarning(unsigned char length, const char* message)
 }
 
 void pushTLVDATAToFlood(TLV tlv)
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	pendingForFloodLock.lock();
 	pendingForFlood.push_back(tlv);
 	pendingForFloodLock.unlock();
 }
 
 void pushPendingForFlood()
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
+	if (TVA.empty())return;
 	pendingForFloodLock.lock();
 	for (TLV tlv : pendingForFlood)
 	{
@@ -355,10 +348,10 @@ void pushPendingForFlood()
 
 		copyUUID(data.senderID, id.id);
 		id.nonce = data.nonce;
+		RR[id].tlv = tlv;
+		RR[id].receptionTime = GetTime();
 		for (auto& voisins : TVA)
-		{
-			RR[id].tlv = tlv;
-			RR[id].receptionTime = GetTime();
+		{			
 			RR[id].toFlood[voisins.first] = { 0, GetTime() + RandomInt(0,1000) };
 		}
 	}
@@ -368,13 +361,11 @@ void pushPendingForFlood()
 
 void pushTLVToSend(TLV tlv, const ADDRESS& dest)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	toSend[dest].push_back(tlv);
 }
 
 void pushTLVToSend(TLV tlv)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	for (auto& entry : TVA)
 	{
 		pushTLVToSend(tlv, entry.first);
@@ -383,7 +374,6 @@ void pushTLVToSend(TLV tlv)
 
 void sendPendingTLVs(int fd, const ADDRESS& address)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	Flood();
 	list<TLV>& listSend = toSend[address];
 
@@ -411,7 +401,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		listSend.pop_front();
 	}
 
-	/* 
+	/*
 	switch (1024 - totalLength)
 	{
 	case 0:
@@ -428,7 +418,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		break;
 	}
 	*/
-	 
+
 	//On n'envoie pas de paquet vide.
 	if (totalLength > 4)
 	{
@@ -436,12 +426,12 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, totalLength, 0, (struct sockaddr*)(&address.nativeAddr), l);
-		char* dest = new char[50]{ 0 };
-		inet_ntop(AF_INET6, &address.nativeAddr.sin6_addr, dest, 50);
+		//char* dest = new char[50]{ 0 };
+		//inet_ntop(AF_INET6, &address.nativeAddr.sin6_addr, dest, 50);
 
-		DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets nets à " + string(dest) + ": ");
-		DEBUGHEX(buf, totalLength);
-		delete dest;
+		//DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets nets à " + string(dest) + ": ");
+		//DEBUGHEX(buf, totalLength);
+		//delete dest;
 	}
 }
 
@@ -603,6 +593,7 @@ char* mircstrerror(int code)
 
 void mircQuit()
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	pendingForFloodLock.lock();
 	for (TLV t : pendingForFlood)
 		freeTLV(t);

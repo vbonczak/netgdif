@@ -30,12 +30,12 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 		TVA[addr] = INFOPAIR();
 		copyUUID(helloTLV.content.hello.sourceID, TVA[addr].id);
 		if (helloTLV.content.hello.longFormat)
-		{
+		{ 
 			if (equalsUUID(myId, helloTLV.content.hello.destID))
 			{
 				//Symétrique
 				TVA[addr].symmetrical = true;
-			}
+			} 
 		}
 		else
 			TVA[addr].lastHello16Date = 0;//Au début, jamais reçu de long
@@ -45,18 +45,18 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 	if (helloTLV.content.hello.longFormat && equalsUUID(myId, helloTLV.content.hello.destID))
 	{
 		TVA[addr].lastHello16Date = time;
+		TVA[addr].symmetrical = true;
 	}
 }
 
 void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	//Uniquement de la part des voisins connus ET symétriques
 	if (TVA.find(from) == TVA.end())
 		return;
 	else if (!TVA[from].symmetrical)
 		return;
-
+	 
 	TLVData data = dataTLV.content.data;
 	int time = GetTime();
 
@@ -64,7 +64,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 	DATAID id;
 	copyUUID(data.senderID, id.id);
 	id.nonce = data.nonce;
-	if (RR.find(id) != RR.end())
+	if (RR.find(id) == RR.end())
 	{
 		//Pas encore reçu 
 		if (equalsUUID(data.senderID, myId))
@@ -73,12 +73,12 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 			pushTLVToSend(tlvAck(dataTLV), from);
 			return;
 		}
-
+		 
 		if (RR.size() > MAX_RR)//Taille limitée, on ne peut pas le recevoir
 			return;
 		//Dans tous les cas, un ACK
 		pushTLVToSend(tlvAck(dataTLV), from);
-
+		 
 		//Pas encore reçu : on l'affiche
 		data.data[data.dataLen - 1] = '\0';
 		writeLine(data.data);
@@ -110,7 +110,6 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 
 void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	TLVAck ack = ackTLV.content.ack;
 	DATAID i;
 	copyUUID(ack.senderID, i.id);
@@ -127,8 +126,7 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 }
 
 void Table_CleanRR()
-{
-	DEBUG(string(__PRETTY_FUNCTION__));
+{ 
 	list<DATAID> toRemove;
 	int time = GetTime();
 	for (auto& entry : RR)
@@ -212,6 +210,7 @@ void Flood()
 
 		for (auto& dest : info.toFlood)
 		{
+			
 			if (dest.second.first >= 5)
 			{
 				//Mort ou très lent, envoi de GoAway de code 2
@@ -227,13 +226,17 @@ void Flood()
 				{
 					//On l'envoie
 					pushTLVToSend(info.tlv, dest.first);
-					info.toFlood[dest.first] = { dest.second.first + 1,
+					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
+
+					dest.second = { dest.second.first + 1,
 						time + RandomInt(//entre 2^n et 2^{n+1}
 							1000 * (1 << (dest.second.first)),
 							1000 * (1 << (dest.second.first + 1))) };
 					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
 				}
 			}
+
+			DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
 		}
 	}
 }
@@ -310,7 +313,7 @@ void freeAllTables()
 		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
 		cout << "Voisin potentiel " << dest << " d'Id " << UUIDtoString(entry.second) << endl;
 	}
-	delete dest;
+	delete[] dest;
 	TVA.clear();
 	TVP.clear();
 }

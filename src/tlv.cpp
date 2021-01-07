@@ -33,15 +33,15 @@ void freeTLV(TLV& tlv)
 	switch (tlv.type)
 	{
 	case TLV_PADN:
-		delete tlv.content.padN.MBZ;
+		delete[] tlv.content.padN.MBZ;
 	case TLV_DATA:
-		delete tlv.content.data.data;
+		delete[] tlv.content.data.data;
 		break;
 	case TLV_GOAWAY:
-		delete tlv.content.goAway.message;
+		delete[] tlv.content.goAway.message;
 		break;
 	case TLV_WARNING:
-		delete tlv.content.warning.message;
+		delete[] tlv.content.warning.message;
 		break;
 	default:
 		//Pas de bloc variable
@@ -68,11 +68,12 @@ string tlvToString(TLV& tlv)
 	case TLV_NEIGHBOUR:
 		dest = new char[50]{ 0 };
 		r = address2IP(dt.neighbour.addrIP, dt.neighbour.port);
-		inet_ntop(AF_INET6, (struct sockaddr_in*)&r.sin6_addr, dest, 50);
+		inet_ntop(AF_INET6, &r.sin6_addr, dest, 50);
 		ret += "TLV_NEIGHBOUR indiquant " + string(dest);
-		delete dest;
+		delete[] dest;
 		break;
 	case TLV_DATA:
+		dt.data.data[dt.data.dataLen - 1] = 0;
 		ret += "TLV_DATA " + to_string(dt.data.nonce) + " de " + UUIDtoString(dt.data.senderID) + " : " + string(dt.data.data);
 		break;
 	case TLV_ACK:

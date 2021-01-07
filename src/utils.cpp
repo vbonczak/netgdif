@@ -2,9 +2,14 @@
 
 int multifd = -1;
 string multiIP = "ff02::4242:4242";
-struct sockaddr_in6 multiaddr; 
+struct sockaddr_in6 multiaddr;
+char* textBuffer;
 
-int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, struct sockaddr* physicaladdr)
+//Affichage défilant
+WINDOW* winput, * woutput;
+int row = 0, col = 0, oldrow = 0;
+
+int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, struct sockaddr_in6* physicaladdr)
 {
 	/*// OPEN
 	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
@@ -25,7 +30,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, st
 
 	if (fd < 0)
 	{
-		perror("Creation de socket impossible");
+		writeErr("Creation de socket impossible");
 		return -1;
 	}
 
@@ -51,7 +56,7 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, st
 
 	//Multicast
 	if (bind(fd, (struct sockaddr*)&addr, len_p_addr) == -1) {
-		perror("Attachement socket IPv6 impossible");
+		writeErr("Attachement socket IPv6 impossible");
 		return -1;
 	}
 
@@ -62,14 +67,14 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, st
 }
 
 
-int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr)
+int setupMulticast(int fd, int& fd_multicast, struct sockaddr_in6* myInterfaceAddr)
 {
 	/*Connexion à la socket*/
 	fd_multicast = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
 	if (fd_multicast < 0)
 	{
-		perror("Creation de socket impossible");
+		writeErr("Creation de socket impossible");
 		return -1;
 	}
 
@@ -94,8 +99,7 @@ int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr)
 	multiaddr.sin6_scope_id = findMulticastInterface(myInterfaceAddr);
 
 	if (bind(fd_multicast, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
-		perror("Attachement socket multicast IPv6 impossible");
-		strerror(errno);
+		writeErr("Attachement socket multicast IPv6 impossible");
 		return -1;
 	}
 
@@ -109,19 +113,19 @@ int setupMulticast(int fd, int& fd_multicast, struct sockaddr* myInterfaceAddr)
 	/* Join the multicast address */
 	if (setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &multicastRequest, sizeof(multicastRequest)) != 0)
 	{
-		perror("Problème d'inscription au groupe multicast.");
+		writeErr("Problème d'inscription au groupe multicast.");
 	}
 
 	return 0;
 }
 
-int findMulticastInterface(struct sockaddr* interfaceAddr)
+int findMulticastInterface(struct sockaddr_in6* interfaceAddr)
 {
 	struct ifaddrs* ifaddr = NULL;
 
 	if (getifaddrs(&ifaddr) || ifaddr == NULL)
 	{
-		perror("Erreur lors de la recherche d'interface pour le Multicast");
+		writeErr("Erreur lors de la recherche d'interface pour le Multicast");
 		return 0;
 	}
 	struct ifaddrs* cur = ifaddr;
@@ -130,11 +134,11 @@ int findMulticastInterface(struct sockaddr* interfaceAddr)
 	while (cur != NULL)
 	{
 
-		if ((cur->ifa_flags & IFF_MULTICAST) != 0 && (cur->ifa_flags & IFF_UP) != 0)
+		if ((cur->ifa_flags & IFF_MULTICAST) != 0 && (cur->ifa_flags & IFF_UP) != 0 && (cur->ifa_addr->sa_family == AF_INET6))
 		{
 			//OK pour multicast
 			name = cur->ifa_name;
-			*interfaceAddr = *cur->ifa_addr;
+			*interfaceAddr = *(struct sockaddr_in6*)cur->ifa_addr;
 			break;
 		}
 		cur = cur->ifa_next;
@@ -210,6 +214,21 @@ int GetTime()
 void InitUtils()
 {
 	srand(static_cast<unsigned int>(time(NULL)));
+	textBuffer = new char[256];
+
+	//Affichage avec curses
+	initscr();
+	woutput = newwin(LINES - 4, COLS, 0, 0);
+	winput = newwin(3, COLS, LINES - 4, 0);
+	scrollok(woutput, true);
+}
+
+void QuitUtils()
+{
+	delwin(winput);
+	delwin(woutput);
+	endwin();
+	delete[] textBuffer;
 }
 
 struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
@@ -239,27 +258,65 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 	return ret;
 }
 
+
+
 void writeLine(string line)
 {
-	cout << line << endl;
+	waddstr(woutput, (line + "\n").c_str());
+	wrefresh(woutput);
 }
 
 void writeErr(string line)
 {
-	cout << line << endl;
+	writeLine(line + " : " + string(strerror(errno)));
+}
+
+string readLine()
+{
+	wgetstr(winput, textBuffer);
+	wclear(winput);
+	wrefresh(winput);
+
+	return string(textBuffer);
+}
+
+string readLine(string inputText)
+{
+	waddstr(winput, inputText.c_str());
+	wrefresh(winput);
+	wgetstr(winput, textBuffer);
+	wclear(winput);
+	wrefresh(winput);
+	return string(textBuffer);
+}
+
+void refreshWin()
+{
+	getmaxyx(stdscr, row, col);
+	if (row != oldrow)
+	{
+		wresize(woutput, row - 4, col);
+		mvwin(winput, row - 4, 0);
+		wmove(winput, 0, 0);
+		oldrow = row;
+	}
 }
 
 #ifdef VERBOSE
 
-void verbose(string msg) { cout << "[Debug t = " << GetTime() << "]" << msg << endl; }
+void verbose(string msg) {
+	writeLine("[Debug t = " + to_string(
+		GetTime()) + "]" + msg + "\n");
+}
 
 void verbosehex(char* data, int l)
 {
+	string r = "";
 	for (int i = 0; i < l; i++)
 	{
-		cout << to_string((unsigned char)data[i]) << " ";
+		r += to_string((unsigned char)data[i]) + " ";
 	}
-	cout << endl;
+	writeLine(r);
 }
 
 #endif
