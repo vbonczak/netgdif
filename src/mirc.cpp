@@ -111,7 +111,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 }
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
-{ 
+{
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -132,7 +132,7 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 }
 
 int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{ 
+{
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
 
@@ -157,7 +157,7 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 }
 
 int parseTLV_Neighbour(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{ 
+{
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -189,8 +189,10 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	tlv.data.nonce = nonce;
 	tlv.data.dataLen = len - 12;
 	tlv.data.data = new char[len - 12];
+	tlv.data.data[len - 13] = 0; //Assurer que le caractère NUL y est pour l'affichage.
 	memcpy(tlv.data.data, body + 13, len - 12);
-
+	
+	DEBUG("parsed DATA avec " + to_string(tlv.data.dataLen));
 	*parsedLength = len + 1;
 
 	return 0;
@@ -217,7 +219,7 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_da
 }
 
 int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{ 
+{
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -237,7 +239,7 @@ int parseTLV_GoAway(char* body, unsigned int sz, unsigned int* parsedLength, TLV
 }
 
 int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
-{ 
+{
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -256,7 +258,7 @@ int parseTLV_Warning(char* body, unsigned int sz, unsigned int* parsedLength, TL
 }
 
 TLV tlvHello(UUID sender)
-{ 
+{
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = false;
@@ -264,7 +266,7 @@ TLV tlvHello(UUID sender)
 }
 
 TLV tlvHello(UUID sender, UUID dest)
-{ 
+{
 	TLV ret(TLV_HELLO);
 	copyUUID(sender, ret.content.hello.sourceID);
 	ret.content.hello.longFormat = true;
@@ -273,7 +275,7 @@ TLV tlvHello(UUID sender, UUID dest)
 }
 
 TLV tlvNeighbour(const char addrIP[16], unsigned short port)
-{ 
+{
 	TLV ret(TLV_NEIGHBOUR);
 	memcpy(ret.content.neighbour.addrIP, addrIP, 16);
 	ret.content.neighbour.port = port;
@@ -283,6 +285,7 @@ TLV tlvNeighbour(const char addrIP[16], unsigned short port)
 TLV tlvData(UUID senderID, const char* data, int length, int nonce)
 {
 	TLV ret(TLV_DATA);
+	length = min(length, 255);//Taille max pour un message net
 	ret.content.data.data = new char[length];
 	memcpy(ret.content.data.data, data, length);
 	ret.content.data.dataLen = length;
@@ -300,7 +303,7 @@ TLV tlvAck(TLV& data)
 }
 
 TLV tlvPadN(unsigned char len)
-{ 
+{
 	TLV ret(TLV_PADN);
 	ret.content.padN.len = len;
 	ret.content.padN.MBZ = new char[len];
@@ -322,7 +325,7 @@ TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 }
 
 TLV tlvWarning(unsigned char length, const char* message)
-{ 
+{
 	TLV ret(TLV_WARNING);
 	ret.content.warning.message = new char[length];
 	memcpy(ret.content.warning.message, message, length);
@@ -331,14 +334,14 @@ TLV tlvWarning(unsigned char length, const char* message)
 }
 
 void pushTLVDATAToFlood(TLV tlv)
-{ 
+{
 	pendingForFloodLock.lock();
 	pendingForFlood.push_back(tlv);
 	pendingForFloodLock.unlock();
 }
 
 void pushPendingForFlood()
-{ 
+{
 	if (TVA.empty())return;
 	pendingForFloodLock.lock();
 	for (TLV tlv : pendingForFlood)
@@ -351,7 +354,7 @@ void pushPendingForFlood()
 		RR[id].tlv = tlv;
 		RR[id].receptionTime = GetTime();
 		for (auto& voisins : TVA)
-		{			
+		{
 			RR[id].toFlood[voisins.first] = { 0, GetTime() + RandomInt(0,1000) };
 		}
 	}
@@ -389,8 +392,8 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		TLV cur = listSend.front();
 
 		len = encodeTLV(cur, data);
-		DEBUG("ajout du TLV :");
-		DEBUGHEX(data, len);
+		//DEBUG("ajout du TLV :");
+		//DEBUGHEX(data, len);
 		if (totalLength + len > 1024)
 		{
 			//Trop gros pour UDP
@@ -521,8 +524,8 @@ int encodeTLV(TLV t, char* outData)
 		memcpy(outData + 2, tlv->neighbour.addrIP, 16);
 		curS = ShortToNetwork(tlv->neighbour.port);
 		memcpy(outData + 18, (char*)(&curS), 2);
-		DEBUG("Encode neighbour >>>>>>>");
-		DEBUGHEX(outData, 20);
+		//DEBUG("Encode neighbour >>>>>>>");
+		//DEBUGHEX(outData, 20);
 		break;
 	case TLV_DATA:
 		length = 14 + tlv->data.dataLen;
@@ -531,6 +534,7 @@ int encodeTLV(TLV t, char* outData)
 		curI = IntToNetwork(tlv->data.nonce);
 		memcpy(outData + 10, (char*)(&curI), 4);
 		memcpy(outData + 14, tlv->data.data, tlv->data.dataLen);
+		DEBUG("data avec" + to_string(tlv->data.dataLen));
 		break;
 	case TLV_ACK:
 		length = 14;

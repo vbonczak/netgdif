@@ -78,9 +78,7 @@ void parseLine(string line)
 
 void sendMessage(string msg)
 {
-	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size(), GetNonce(msg)));
-	//socklen_t l = sizeof(multiaddr);
-	//sendto(multifd, msg.c_str(), msg.size() + 1, 0, (struct sockaddr*)(&multiaddr), l);
+	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size() + 1, GetNonce(msg)));
 }
 
 void background()
@@ -167,7 +165,7 @@ void background()
 		//Remplissage des messages de l'utilisateur courant
 		pushPendingForFlood();
 
-		if (time - lastSendTime > 1500)
+		if (time - lastSendTime > SEND_PENDING_DELAY)
 		{
 			lastSendTime = time;
 			//Envoi effectif des paquets UDP vers leurs destinataires respectifs.

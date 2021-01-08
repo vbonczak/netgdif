@@ -30,15 +30,18 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 		TVA[addr] = INFOPAIR();
 		copyUUID(helloTLV.content.hello.sourceID, TVA[addr].id);
 		if (helloTLV.content.hello.longFormat)
-		{ 
+		{
 			if (equalsUUID(myId, helloTLV.content.hello.destID))
 			{
 				//Symétrique
 				TVA[addr].symmetrical = true;
-			} 
+			}
 		}
 		else
+		{
 			TVA[addr].lastHello16Date = 0;//Au début, jamais reçu de long
+			pushTLVToSend(tlvHello(myId, helloTLV.content.hello.sourceID));//envoi d'un long pour faire connaissance
+		}
 	}
 	//Mise à jour des instants de réception des hellos.
 	TVA[addr].lastHelloDate = time;
@@ -56,7 +59,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		return;
 	else if (!TVA[from].symmetrical)
 		return;
-	 
+
 	TLVData data = dataTLV.content.data;
 	int time = GetTime();
 
@@ -73,14 +76,13 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 			pushTLVToSend(tlvAck(dataTLV), from);
 			return;
 		}
-		 
+
 		if (RR.size() > MAX_RR)//Taille limitée, on ne peut pas le recevoir
 			return;
 		//Dans tous les cas, un ACK
-		pushTLVToSend(tlvAck(dataTLV), from);
-		 
+		//pushTLVToSend(tlvAck(dataTLV), from);
+
 		//Pas encore reçu : on l'affiche
-		data.data[data.dataLen - 1] = '\0';
 		writeLine(data.data);
 
 		//Puis on l'ajoute
@@ -94,6 +96,10 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 				info.toFlood[entry.first] = { 0,time + RandomInt(0,1000) };
 		}
 		RR[id] = info;
+		for (auto& e : RR[id].toFlood)
+		{
+			DEBUG("tofllood : " + to_string(e.second.first) + ", " + to_string(e.second.second));
+		}
 	}
 	else
 	{
@@ -104,7 +110,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		RR[i].toFlood.erase(from);
 
 		//Dans tous les cas, un ACK
-		pushTLVToSend(tlvAck(dataTLV), from);
+		//pushTLVToSend(tlvAck(dataTLV), from);
 	}
 }
 
@@ -126,7 +132,7 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 }
 
 void Table_CleanRR()
-{ 
+{
 	list<DATAID> toRemove;
 	int time = GetTime();
 	for (auto& entry : RR)
@@ -141,7 +147,7 @@ void Table_CleanRR()
 
 void Table_RefreshTVA()
 {
-	static int lastHelloSent = 0;
+	static int lastHelloSent = -HELLO_DELAY;
 	static int lastLongHelloSent = 0;
 	int time = GetTime();
 	list<ADDRESS> toRemove;
@@ -178,7 +184,7 @@ void Table_RefreshTVA()
 	//Pas assez de voisins symétriques
 	if (TVA.size() - nonSym.size() < minSymNeighbours)
 	{
-		if (time - lastHelloSent > 15000)
+		if (time - lastHelloSent > HELLO_DELAY)
 		{
 			//toutes les 15 secondes, on envoie un hello court aux voisins non symétriques aux TVP
 			/*for (ADDRESS add : nonSym)
@@ -188,7 +194,7 @@ void Table_RefreshTVA()
 		}
 	}
 
-	if (time - lastLongHelloSent > 30000)
+	if (time - lastLongHelloSent > HELLO_LONG_DELAY)
 	{
 		//Toutes les 30sec, envoi d'un Hello long à tous les voisins, symétriques ou pas.
 		for (auto& entry : TVA)
@@ -205,12 +211,11 @@ void Flood()
 	int time = GetTime();
 	for (auto& entry : RR)
 	{
-		DATAID id = entry.first;
-		DATAINFO info = entry.second;
+		const DATAID& id = entry.first;
+		DATAINFO& info = entry.second;
 
 		for (auto& dest : info.toFlood)
 		{
-			
 			if (dest.second.first >= 5)
 			{
 				//Mort ou très lent, envoi de GoAway de code 2
@@ -224,19 +229,17 @@ void Flood()
 				//dest.second = paire (nombre de réémissions, instant d'envoi prévu)
 				if (time >= dest.second.second)
 				{
+
 					//On l'envoie
-					pushTLVToSend(info.tlv, dest.first);
-					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
+					pushTLVToSend(info.tlv, dest.first); 
 
 					dest.second = { dest.second.first + 1,
 						time + RandomInt(//entre 2^n et 2^{n+1}
 							1000 * (1 << (dest.second.first)),
 							1000 * (1 << (dest.second.first + 1))) };
-					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
+					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv) + " prochain envoi : " + to_string(dest.second.second));
 				}
-			}
-
-			DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv));
+			}			 
 		}
 	}
 }
@@ -270,6 +273,7 @@ void eraseFromTVA(const ADDRESS& addr)
 	//On enlève aussi les clés des gens à inonder de RR
 	for (auto& entry : RR)
 	{
+		DEBUG("efface");
 		DATAINFO info = entry.second;
 		info.toFlood.erase(addr);
 	}

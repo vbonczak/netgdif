@@ -18,7 +18,9 @@
 
 extern int MAX_RR;
 
-
+constexpr int HELLO_DELAY = 5000;
+constexpr int HELLO_LONG_DELAY = 25000;
+constexpr int SEND_PENDING_DELAY = 5000;
 
 typedef struct
 {
