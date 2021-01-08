@@ -6,7 +6,7 @@ UUID myId;
 unordered_map<ADDRESS, list<TLV>, ADDRESSHash> toSend;
 
 list<TLV> pendingForFlood; //liste accedée par les deux threads, sujette à mutex
-mutex pendingForFloodLock;
+mutex pendingForFloodLock; //le mutex en question
 
 //Nombre minimal de voisins symétriques
 int minSymNeighbours = 10;
@@ -102,10 +102,13 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			DEBUG("       REÇU     > " + tlvToString(curtlv));
+			DEBUG(" >>>>>>>>>>> " + tlvToString(curtlv));
 		}
 		else
+		{
 			DEBUG(mircstrerror(ret));
+			readLine();
+		}
 	}
 
 }
@@ -179,7 +182,7 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
-	char len = body[0];
+	unsigned char len = body[0];
 
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
@@ -191,7 +194,7 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	tlv.data.data = new char[len - 12];
 	tlv.data.data[len - 13] = 0; //Assurer que le caractère NUL y est pour l'affichage.
 	memcpy(tlv.data.data, body + 13, len - 12);
-	
+
 	DEBUG("parsed DATA avec " + to_string(tlv.data.dataLen));
 	*parsedLength = len + 1;
 
@@ -203,7 +206,7 @@ int parseTLV_ACK(char* body, unsigned int sz, unsigned int* parsedLength, TLV_da
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
-	char len = body[0];
+	unsigned char len = body[0];
 
 	if ((len < 12) || (len + 1 > sz))
 		return PARSE_EINVALID;
@@ -319,7 +322,7 @@ TLV tlvGoAway(char code, unsigned char messageLength, const char* message)
 	TLV ret(TLV_GOAWAY);
 	ret.content.goAway.code = code;
 	ret.content.goAway.message = new char[messageLength];
-	memcpy(ret.content.goAway.message, message, messageLength);
+	strcpy(ret.content.goAway.message, message);
 	ret.content.goAway.messageLength = messageLength;
 	return ret;
 }
@@ -328,7 +331,7 @@ TLV tlvWarning(unsigned char length, const char* message)
 {
 	TLV ret(TLV_WARNING);
 	ret.content.warning.message = new char[length];
-	memcpy(ret.content.warning.message, message, length);
+	strcpy(ret.content.warning.message, message);
 	ret.content.warning.length = length;
 	return ret;
 }
@@ -364,6 +367,7 @@ void pushPendingForFlood()
 
 void pushTLVToSend(TLV tlv, const ADDRESS& dest)
 {
+	//*tlv.copyCount++;
 	toSend[dest].push_back(tlv);
 }
 
@@ -392,8 +396,12 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		TLV cur = listSend.front();
 
 		len = encodeTLV(cur, data);
-		//DEBUG("ajout du TLV :");
-		//DEBUGHEX(data, len);
+		/**cur.copyCount--;
+		if (*cur.copyCount == 0)
+		{
+			DEBUG("Copies 0");
+			freeTLV(cur);
+		} *///Guérir des fuites de mémoire, pour plus tard (pas fini)
 		if (totalLength + len > 1024)
 		{
 			//Trop gros pour UDP
@@ -429,15 +437,8 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
 		sendto(fd, buf, totalLength, 0, (struct sockaddr*)(&address.nativeAddr), l);
-		//char* dest = new char[50]{ 0 };
-		//inet_ntop(AF_INET6, &address.nativeAddr.sin6_addr, dest, 50);
-
-		//DEBUG("Envoi effectif de " + to_string(totalLength - 4) + " octets nets à " + string(dest) + ": ");
-		//DEBUGHEX(buf, totalLength);
-		//delete dest;
 	}
 }
-
 
 int tlvLen(TLV& t)
 {
@@ -454,14 +455,7 @@ int tlvLen(TLV& t)
 		length = 2 + tlv->padN.len;
 		break;
 	case TLV_HELLO:
-		if (tlv->hello.longFormat)
-		{
-			length = 18;
-		}
-		else
-		{
-			length = 10;
-		}
+		length = tlv->hello.longFormat ? 18 : 10;
 		break;
 	case TLV_NEIGHBOUR:
 		length = 20;
@@ -493,6 +487,7 @@ int encodeTLV(TLV t, char* outData)
 	int length = 0;
 	unsigned short curS;
 	unsigned int curI;
+
 	switch (type)
 	{
 	case TLV_PAD1:
@@ -524,8 +519,6 @@ int encodeTLV(TLV t, char* outData)
 		memcpy(outData + 2, tlv->neighbour.addrIP, 16);
 		curS = ShortToNetwork(tlv->neighbour.port);
 		memcpy(outData + 18, (char*)(&curS), 2);
-		//DEBUG("Encode neighbour >>>>>>>");
-		//DEBUGHEX(outData, 20);
 		break;
 	case TLV_DATA:
 		length = 14 + tlv->data.dataLen;
@@ -534,7 +527,6 @@ int encodeTLV(TLV t, char* outData)
 		curI = IntToNetwork(tlv->data.nonce);
 		memcpy(outData + 10, (char*)(&curI), 4);
 		memcpy(outData + 14, tlv->data.data, tlv->data.dataLen);
-		DEBUG("data avec" + to_string(tlv->data.dataLen));
 		break;
 	case TLV_ACK:
 		length = 14;
@@ -566,12 +558,19 @@ int encodeTLV(TLV t, char* outData)
 
 void eraseFromSendList(const ADDRESS& a)
 {
+	/*for (TLV t : toSend[a])
+	{
+		*(t.copyCount)--;
+		if (*t.copyCount == 0)
+		{
+			DEBUG("Copies 0");
+			freeTLV(t);
+		}
+	}*/
 	toSend.erase(a);
 }
 
-
 /*Transcription des erreurs*/
-
 char* mircstrerror(int code)
 {
 	switch (code)
@@ -597,7 +596,6 @@ char* mircstrerror(int code)
 
 void mircQuit()
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	pendingForFloodLock.lock();
 	for (TLV t : pendingForFlood)
 		freeTLV(t);

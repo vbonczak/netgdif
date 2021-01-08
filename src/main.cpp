@@ -11,7 +11,6 @@ bool rawUDP_read = true;
 bool receiving = false;
 
 
-
 int main(int argc, char* argv[])
 {
 	InitUtils();
@@ -46,9 +45,9 @@ void InitMain()
 	//Ctrl+C pour arrêter
 	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
 		exit(EXIT_FAILURE);
-
-	copyUUID(RandomBytes(8), myId);
-
+	char* r = RandomBytes(8);
+	copyUUID(r, myId);
+	delete[] r;
 	nickname = readLine("Entrez votre pseudo : ");
 }
 
@@ -78,7 +77,22 @@ void parseLine(string line)
 
 void sendMessage(string msg)
 {
-	pushTLVDATAToFlood(tlvData(myId, msg.c_str(), msg.size() + 1, GetNonce(msg)));
+	const char* native = msg.c_str();
+	int offset = 0;
+	char cur[255];
+	int left = msg.size();
+
+	while (left > 0)
+	{
+		int curSz = min(left, 254);
+		memcpy(cur, native + offset, curSz);
+		cur[curSz] = 0;
+		pushTLVDATAToFlood(tlvData(myId, cur, curSz + 1, GetNonce(string(cur))));
+		offset += curSz;
+		left -= curSz;
+	}
+
+	writeLine(msg);
 }
 
 void background()
@@ -88,16 +102,16 @@ void background()
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
 	int fd;	//le socket de notre connexion
 
-
 	int time = 0;
 	int lastNeighbourSentTime = 0;
 	int lastCleanedTime = 0;
 	//Instant de dernier envoi (éviter de surcharger le destinataire)
-	int lastSendTime;
+	int lastSendTime = 0;
+
+	//Recevoir des paquets en parallèle, pour éviter de bloquer sur un recvfrom
 	thread* receiver;
-	struct sockaddr_in6 client;
-	struct sockaddr_in6 myaddr; //notre adresse physique liée à l'interface de communication);
-	writeLine("je suis " + UUIDtoString(myId));
+	struct sockaddr_in6 client; //Le client reçu par le thread receveur
+	struct sockaddr_in6 myaddr; //notre adresse physique liée à l'interface de communication, que l'on communique aux autres par Neighbour;
 
 	if (setup(&servaddr, fd, multifd, &myaddr) < 0)
 	{
@@ -105,9 +119,7 @@ void background()
 		quit = true;
 		return;
 	}
-	//char str_buffer[150] = { 0 };
-	//inet_ntop(AF_INET6, &(myaddr.sin6_addr), str_buffer, 150);
-	//DEBUG(str_buffer);
+
 	while (!quit)
 	{
 		time = GetTime();
@@ -117,16 +129,11 @@ void background()
 			//le receveur a rempli le paquet
 			receiver->join();
 			delete receiver;
-			/*char res[60];
-			inet_ntop(AF_INET6, (void*)(&client.sin6_addr), res, 60);
-			writeLine("Reçu de la part de " + string(res) + " le message suivant :");
-			writeLine(string(rawUDP));
-			*/
+
+			//Décodage
 			MIRC_DGRAM dgram;
 			parseDatagram(rawUDP, rawUDP_len, dgram);
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
-
-			//inet_ntop(AF_INET6, (void*)(&ad.nativeAddr.sin6_addr), str_buffer, 150);
 
 			manageDatagram(dgram, ad);
 
@@ -136,8 +143,8 @@ void background()
 		if (!receiving && rawUDP_read)
 		{
 			//Lance un receveur
-			receiver = new thread(receive, fd, &client);
 			receiving = true;
+			receiver = new thread(receive, fd, &client);
 		}
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
@@ -178,10 +185,14 @@ void background()
 		sleep(1);
 	}
 
-	pushTLVToSend(tlvGoAway(TLV_GOAWAY_QUIT, 22, "Bye bye, see you soon"));
-	for (auto& entry : TVA)
+	if (TVA.size() > 0)
 	{
-		sendPendingTLVs(fd, entry.first);
+		pushTLVToSend(tlvGoAway(TLV_GOAWAY_QUIT, 22, "Bye bye, see you soon"));
+
+		for (auto& entry : TVA)
+		{
+			sendPendingTLVs(fd, entry.first);
+		}
 	}
 
 	shutdown(fd, SHUT_RDWR); //pour que recv retourne immédiatement
@@ -190,6 +201,7 @@ void background()
 	close(fd);
 
 	receiver->join();
+	delete receiver;
 
 	mircQuit();
 
@@ -203,13 +215,13 @@ void receive(int fd, struct sockaddr_in6* client)
 	socklen_t len = sizeof(*client);
 	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
 	rawUDP_read = false;
-	char* dst = new char[100];
+	//char* dst = new char[100];
 
-	inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
+	//inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
 
-	DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
-	DEBUGHEX(rawUDP, rawUDP_len);
-	delete[] dst;
+	//DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
+	//DEBUGHEX(rawUDP, rawUDP_len);
+	//delete[] dst;
 	receiving = false;
 }
 
@@ -279,8 +291,6 @@ void manageDatas(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
-		//tlv.content.data.data[tlv.content.data.dataLen - 1] = '\0';
-		//cout << "reçu DATA : " << tlv.content.data.data << endl;
 		Table_DataFrom(tlv, from);
 	}
 }
@@ -305,6 +315,7 @@ void manageNeighbours(list<TLV>& tlvs)
 			//Ajout à TVP d'un ID inconnu, qui sera identifié lors d'un Hello éventuel venant de cette adresse IP.
 			TVP[toAdd];
 		}
+		freeTLV(tlv);
 	}
 }
 
@@ -323,7 +334,7 @@ void manageWarnings(list<TLV>& tlvs)
 	for (TLV tlv : tlvs)
 	{
 		tlv.content.data.data[tlv.content.warning.length - 1] = '\0';
-		writeLine("Warning : " + string(tlv.content.warning.message));
+		writeLine("[Service] " + string(tlv.content.warning.message));
 		freeTLV(tlv);
 	}
 }
@@ -335,7 +346,8 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 	char service[NI_MAXSERV];
 
 	/*Connexion à la socket*/
-		//La variable globale multifd sert à envoyer des paquets en multicast ipv6
+
+	//La variable globale multifd sert à envoyer des paquets en multicast ipv6
 	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd, physaddr);
 	if (fd < 0)
 	{
@@ -352,15 +364,13 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
 			writeErr("Erreur");
-	} 
+		delete[] dst;
+	}
 	*addr = servaddr;
 
 	return 0;
 }
 
-/*
- * wrapper for the sigaction function
- */
 int sigaction_wrapper(int signum, handler_t* handler) {
 	struct sigaction act;
 	sigset_t set;
@@ -373,10 +383,6 @@ int sigaction_wrapper(int signum, handler_t* handler) {
 	return sigaction(signum, &act, NULL);
 }
 
-/*
- * sigint_handler - The kernel sends a SIGINT to the shell whenver the
- *    user types ctrl-c at the keyboard.
- */
 void sigint_handler(int sig)
 {
 	writeLine("\nArrêt. Appuyez sur Entrée pour quitter.");

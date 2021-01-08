@@ -50,6 +50,8 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 		TVA[addr].lastHello16Date = time;
 		TVA[addr].symmetrical = true;
 	}
+
+	freeTLV(helloTLV);
 }
 
 void Table_DataFrom(TLV dataTLV, ADDRESS& from)
@@ -80,7 +82,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		if (RR.size() > MAX_RR)//Taille limitée, on ne peut pas le recevoir
 			return;
 		//Dans tous les cas, un ACK
-		//pushTLVToSend(tlvAck(dataTLV), from);
+		pushTLVToSend(tlvAck(dataTLV), from);
 
 		//Pas encore reçu : on l'affiche
 		writeLine(data.data);
@@ -93,7 +95,9 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		{
 			//À inonder vers chaque voisin actif, sauf l'emetteur
 			if (entry.first != from)
+			{
 				info.toFlood[entry.first] = { 0,time + RandomInt(0,1000) };
+			}
 		}
 		RR[id] = info;
 		for (auto& e : RR[id].toFlood)
@@ -110,7 +114,9 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		RR[i].toFlood.erase(from);
 
 		//Dans tous les cas, un ACK
-		//pushTLVToSend(tlvAck(dataTLV), from);
+		pushTLVToSend(tlvAck(dataTLV), from);
+
+		freeTLV(dataTLV);
 	}
 }
 
@@ -129,6 +135,7 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 			RR.erase(i);
 		}
 	}
+	freeTLV(ackTLV);
 }
 
 void Table_CleanRR()
@@ -231,7 +238,7 @@ void Flood()
 				{
 
 					//On l'envoie
-					pushTLVToSend(info.tlv, dest.first); 
+					pushTLVToSend(info.tlv, dest.first);
 
 					dest.second = { dest.second.first + 1,
 						time + RandomInt(//entre 2^n et 2^{n+1}
@@ -239,7 +246,7 @@ void Flood()
 							1000 * (1 << (dest.second.first + 1))) };
 					DEBUG("Envoi numéro " + to_string(dest.second.first) + " de " + tlvToString(info.tlv) + " prochain envoi : " + to_string(dest.second.second));
 				}
-			}			 
+			}
 		}
 	}
 }
@@ -258,6 +265,8 @@ void sendHello(list<ADDRESS>& nonSym)
 		memcpy(buf + 2, (char*)(&ll), 2);
 		socklen_t l = sizeof(multiaddr);
 		sendto(multifd, buf, count + 4, 0, (struct sockaddr*)(&multiaddr), l);
+		freeTLV(h);
+		delete[] buf;
 	}
 	else
 	{
@@ -273,7 +282,6 @@ void eraseFromTVA(const ADDRESS& addr)
 	//On enlève aussi les clés des gens à inonder de RR
 	for (auto& entry : RR)
 	{
-		DEBUG("efface");
 		DATAINFO info = entry.second;
 		info.toFlood.erase(addr);
 	}
@@ -288,7 +296,7 @@ void freeAllTables()
 		freeTLV(entry.second.tlv);
 		entry.second.toFlood.clear();
 	}
-
+#ifdef VERBOSE
 	DEBUG("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
 		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
 
@@ -318,6 +326,7 @@ void freeAllTables()
 		cout << "Voisin potentiel " << dest << " d'Id " << UUIDtoString(entry.second) << endl;
 	}
 	delete[] dest;
+#endif
 	TVA.clear();
 	TVP.clear();
 }

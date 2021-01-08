@@ -91,7 +91,6 @@ typedef struct TLV_s
 {
 	char type;
 	TLV_data content;
-	
 	TLV_s(char t);
 	TLV_s();
 } TLV;

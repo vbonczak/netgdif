@@ -146,7 +146,9 @@ int findMulticastInterface(struct sockaddr_in6* interfaceAddr)
 	int ret = 0;
 	if (name != NULL)
 		ret = if_nametoindex(name);
+
 	DEBUG("Interface sélectionnée : " + string(name));
+
 	freeifaddrs(ifaddr);
 
 	return ret;
@@ -174,7 +176,7 @@ unsigned short ShortToNetwork(unsigned short localshort)
 
 char* RandomBytes(int size)
 {
-	char* ret = new char(size);
+	char* ret = new char[size];
 	for (int i = 0; i < size; i++)
 	{
 		ret[i] = char(rand() % 256);
@@ -239,12 +241,12 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 	{
 		zeros = zeros && (ipv6[i] == 0);
 	}
-	if (zeros && ipv6[10] == 0xff && ipv6[10] == 0xff)
+	if (zeros && ipv6[10] == 0xff && ipv6[11] == 0xff)
 	{
 		//C'est une ipv4 Mapped
 		struct sockaddr_in* ret4 = (struct sockaddr_in*)(&ret);
 		ret4->sin_family = AF_INET;
-		ret4->sin_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+		ret4->sin_port = ShortToNetwork(port);//Boutisme réseau pour le port dans la structure native.
 		string ip = to_string(ipv6[12]) + "." + to_string(ipv6[13]) + "." + to_string(ipv6[14]) + "." + to_string(ipv6[15]);
 		inet_aton(ip.c_str(), &(ret4->sin_addr));
 	}
@@ -253,7 +255,7 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 		//ret.sin6_len = sizeof(ret); //According to other standards than POSIX
 		ret.sin6_family = AF_INET6;
 		memcpy(ret.sin6_addr.s6_addr, ipv6, 16);
-		ret.sin6_port = htons(port);//Boutisme réseau pour le port dans la structure native.
+		ret.sin6_port = ShortToNetwork(port);//Boutisme réseau pour le port dans la structure native.
 	}
 	return ret;
 }

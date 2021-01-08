@@ -47,7 +47,6 @@ void freeTLV(TLV& tlv)
 		//Pas de bloc variable
 		break;
 	}
-
 }
 
 string tlvToString(TLV& tlv)
@@ -77,7 +76,7 @@ string tlvToString(TLV& tlv)
 		ret += "TLV_DATA " + to_string(dt.data.nonce) + " de " + UUIDtoString(dt.data.senderID) + " : " + string(dt.data.data);
 		break;
 	case TLV_ACK:
-		ret += "TLV_ACK" + to_string(dt.ack.nonce) + " de " + UUIDtoString(dt.ack.senderID);
+		ret += "TLV_ACK  " + to_string(dt.ack.nonce) + " de " + UUIDtoString(dt.ack.senderID);
 		break;
 	case TLV_GOAWAY:
 		ret += "TLV_GOAWAY " + to_string(dt.goAway.code) + " : " + string(dt.goAway.message);
@@ -101,4 +100,5 @@ TLV_s::TLV_s(char t)
 
 TLV_s::TLV_s()
 {
+
 }

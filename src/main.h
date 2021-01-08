@@ -40,6 +40,16 @@ void manageWarnings(list<TLV>& tlvs);
 
 int setup(struct sockaddr_in6*, int& fd, int& mfd, struct sockaddr_in6* physaddr);
 
+/// <summary>
+/// Le CTRL+C
+/// </summary>
+/// <param name="signum"></param>
+/// <param name="handler"></param>
+/// <returns></returns>
 int sigaction_wrapper(int signum, handler_t* handler);
 
+/// <summary>
+/// Le CTRL+C
+/// </summary>
+/// <param name="sig"></param>
 void sigint_handler(int sig);

@@ -37,8 +37,16 @@ extern int minSymNeighbours;
 /*Assez souvent, on envoie les TLV neighbour à nos voisins*/
 #define NEIGHBOUR_FLOODING_DELAY	MINUTE 
 
+/// <summary>
+/// Transcription des erreurs
+/// </summary>
+/// <param name="code"></param>
+/// <returns></returns>
 char* mircstrerror(int code);
 
+/// <summary>
+/// Quitte en vidant les différentes listes.
+/// </summary>
 void mircQuit();
 
 /// <summary>

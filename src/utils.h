@@ -73,7 +73,8 @@ void QuitUtils();
 void verbose(string msg);
 void verbosehex(char* data, int l);
 #else
-#define DEBUG(x)	 
+#define DEBUG(x)	
+#define DEBUGHEX(x,y)
 #endif
 
 #define MINUTE	60000
