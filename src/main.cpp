@@ -277,6 +277,10 @@ void receive(int fd, struct sockaddr_in6* client, bool* readFlag, bool* receivin
 {
 	socklen_t len = sizeof(*client);
 	*recvLen = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
+	
+	if (quit)
+		return;
+	
 	*readFlag = false;
 	char* dst = new char[100];
 
