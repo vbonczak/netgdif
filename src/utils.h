@@ -66,7 +66,7 @@ void InitUtils();
 
 void QuitUtils();
 
-//#define VERBOSE
+#define VERBOSE
 
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
@@ -153,6 +153,8 @@ void writeErr(string line);
 string readLine();
 string readLine(string inputText);
 void refreshWin();
+
+string EatToken(string& line, char sep=' ');
 
 extern WINDOW* winput;
 extern WINDOW* woutput;

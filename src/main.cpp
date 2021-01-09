@@ -81,6 +81,25 @@ void parseLine(string line)
 			padN.content.padN.MBZ[16] = 1;
 			pushTLVToSend(padN);
 		}
+		else if (cmd == "/test")
+		{
+			//réservé
+			//ADDRESS a;
+			string as = EatToken(line);
+			unsigned short port = stoi(line);
+			struct sockaddr_in6 to_add;
+			to_add.sin6_family = AF_INET6;
+			if (1 != inet_pton(AF_INET6, as.c_str(), &to_add.sin6_addr))
+			{
+				writeErr("Erreur inet_pton.");
+				return;
+			}
+			to_add.sin6_family = AF_INET6;
+			to_add.sin6_port = htons(port);
+			ADDRESS	a = mapIP((struct sockaddr_in*)&to_add);
+			UUID dummy;
+			Table_HelloFrom(a, tlvHello(dummy));
+		}
 	}
 	else
 	{
@@ -124,7 +143,7 @@ void background()
 	bool multireceiving = false;
 
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
-	
+
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -146,7 +165,9 @@ void background()
 		quit = true;
 		return;
 	}
-	 
+
+
+
 	DEBUG("fd = " + to_string(fd));
 	DEBUG("multifd = " + to_string(multifd));
 

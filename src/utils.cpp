@@ -73,8 +73,8 @@ int setupMulticast(int fd, int& fd_multicast, struct sockaddr_in6* myInterfaceAd
 	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_V6ONLY, &optval, sizeof(optval));
 	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
 	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
-	setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
-	setsockopt(fd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
+	//setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &optval, sizeof(optval));
+	//setsockopt(fd, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &optval, sizeof(optval));
 	optval = 0;
 	setsockopt(fd_multicast, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
 	setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP, &optval, sizeof(optval));
@@ -320,6 +320,23 @@ void refreshWin()
 		oldrow = row;
 	}
 #endif // VERBOSE
+}
+
+
+string EatToken(string& line, char sep)
+{
+	size_t i = line.find_first_of(sep);
+	string newLine = line;
+	if (i != line.npos)
+	{
+		line = line.substr(i + 1);
+		return newLine.substr(0, i);
+	}
+	else
+	{
+		line = "";
+		return newLine;
+	}
 }
 
 #ifdef VERBOSE

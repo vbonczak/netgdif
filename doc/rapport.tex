@@ -18,7 +18,7 @@
 \input{preambule.tex}
 
 
-\title{Groupes de discussion par inondation fiable}
+\title{Groupes de discussion par inondation fiable : NetGDIF}
 \author{Adam \bsc{Phillips}, Vincent \bsc{Bonczak}}
 
 \begin{document}
@@ -34,11 +34,11 @@
 	
 \section{Introduction}
 
-L'implémentation d'un système de discussion publique et distribué comporte plusieurs parties dont la plus importante reste la mise en œuvre d'un algorithme \emph{distribué}.
+L'implémentation d'un système de discussion publique et distribué comporte plusieurs parties dont la plus importante reste la mise en œuvre d'un algorithme \emph{distribué}. Pour ce projet, le sujet fournissait cet algorithme, restait donc l'implémentation.
 
 \subsection{État du projet}
 
-L'exécutable \texttt{netgdif} écoute sur le port 1212
+L'exécutable \texttt{netgdif} envoie toutes 
 
 En plus des attentes du sujet minimal, sans attention particulière à fonctionner en IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
 une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
@@ -49,7 +49,39 @@ En outre, nous avons développé les extensions suivantes (en plus de la sécuri
 \item[Agrégation] Les TLV sont placés dans une liste d'attente (\f{toSend}) indexée par les adresses de destination. Pour chaque destinataire, la fonctio \f{sendPendingTLVs}
 envoie le plus de TLV possible dans un paquet UDP. Si il n'y a pas assez de TLV, elle remplit au minimum le paquet avec un PadN de 255 octets.
 \item[Découverte multicast]Les Hello courts sont envoyés en multicast sur le port 1212.
+
+\item[Fragmentation] Il est possible d'envoyer des messages de plus de 254 caractères grâce à un mécanisme de fragmentation sommaire qui envoie autant de 
+TLV Data que nécessaire.
 \end{description}
+
+Nous nous sommes intéressés également au transfert de fichier, mais sans aller au bout : voici néanmoins notre proposition pour effectuer ce type de transfert:
+
+\begin{lstlisting}
+#define TLV_FILE			0xf1      //Identifiant du TLV
+\end{lstlisting}
+
+Tout d'abord, réserver un identifiant. Le TLV File sert à échanger des requêtes pour déterminer les personnes intéressées par le fichier (il n'est pas question
+d'écrire sans préavis sur la machine du pair). Ce TLV a le format suivant :
+
+\begin{verbatim}
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Type = 0xf1   |     Length    |     Step      |     RESV      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          Sequence number      |           Data    ...	         
++ +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+\end{verbatim}
+
+Le champ \texttt{Step} identifie à quelle étape nous nous trouvons : proposition d'un fichier, réponse acceptante ou transfert
+de données effectif. Le champ \texttt{RESV} est destiné à une
+utilisation future, et \texttt{Sequence number} indique le numéro du bloc contenu dans ce TLV (en cas de \texttt{Step} correspondant au transfert).
+Les données suivent.
+
+Avec ce moyen, on transmet un fichier par blocs de 251 octets (on peut transférer au maximum 15 Mo de données). 
+
+Lors de la réception par le destinataire, le fichier est écrit en utilisant des fonctions de type \emph{fseek} pour changer la position courante et remplir
+les blancs. Un acquittement est envoyé, de façon analogue à la procédure pour les TLV Data.
 
 \section{Implémentation}
 
@@ -60,17 +92,43 @@ d'un paquet PadN est observé entièrement pour s'assurer qu'aucune information 
 une erreur de segmentation. Même lorsqu'il ne s'agit pas d'une attaque, mais juste d'une erreur de calcul de la part d'un autre pair, notre solution reste robuste grâce à
 ces considérations.
 
-Lorsqu'une erreur est détectée, un TLV GoAway de code 3 est envoyé à l'emmeteur en cause. D'autre part, les TLV Data non valides ne sont pas inondés (comme aucun TLV invalide 
+Lorsqu'une erreur est détectée, un TLV GoAway de code 3 est envoyé à l'émetteur en cause. D'autre part, les TLV Data non valides ne sont pas inondés (comme aucun TLV invalide 
 n'est pris en compte).
+
+\subsection{L'algorithme}
 	
-	Les TLV en attente (Data et neighbour) sont soit envoyés toutes les 5 secondes.
+	Il consiste en l'exécution de deux \emph{threads} en permanence, avec des \emph{threads} secondaires lancés pour attendre des données entrantes.
+	Le 
 	
-	On supprime le voisin de la TVA lors de la réception d'un GoAway de sa part.
+	\begin{figure}[ht!]
+		\centering
+			\includegraphics[width=.8\columnwidth]{img.png}
+		\label{fig:img}
+		\caption{Vue d'ensemble résumée de l'algorithme}
+	\end{figure}
 	
-	Toutes les 20 sec, nettoyage de la table des données récemment reçues.
+	Quelques détails de gestion, notamment concernant les délais d'envoi:
 	
-	Sur réception d'un Hello court, envoi d'un hello long à cette personne si il n'est pas dans notre table d'actifs.
+	\begin{itemize}
+		\item 	Les TLV en attente (Data et Neighbour) sont soit envoyés toutes les 5 secondes, et les Hello courts toutes les 5 secondes également (en multicast, de façon 	directe sans passer par la mise en attente).
 	
-	Dans l'attente de voisins symétriques, on garde les données à envoyer dans le tampon pendingForFlood
+	\item On supprime le voisin de la TVA lors de la réception d'un GoAway de sa part.
+	
+	\item Toutes les 20 secondes, nettoyage de la table des données récemment reçues (la durée de vie de chaque donnée est de 3 minutes).
+	
+	\item Sur réception d'un Hello court, envoi d'un Hello long à cette personne s'il n'est pas dans notre table d'actifs.
+	
+	\item  Toutes les secondes, 
+
+	\end{itemize}
+	
+	
+\section{Conclusion}
+	
+	Le développement d'un tel utilitaire a permis de mettre en œuvre la plupart des notions vues au cours du semestre dans le cours
+	de réseau : transfert de données avec UDP, l'utilisation d'IPv6 et le \emph{multicast} amélioré que cette norme permet, mais aussi les rudiments
+	 de programmation système et de gestion bas niveau de la machine.
+	
+	Même si
 	
 \end{document}
