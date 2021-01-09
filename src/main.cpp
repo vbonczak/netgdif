@@ -374,7 +374,8 @@ void manageNeighbours(list<TLV>& tlvs)
 		ADDRESS toAdd;
 		memcpy(toAdd.addrIP, tlv.content.neighbour.addrIP, 16);
 		toAdd.port = tlv.content.neighbour.port;
-		if (TVP.find(toAdd) == TVP.end()) {
+		if (TVP.find(toAdd) == TVP.end()) 
+		{
 			address2IP(tlv.content.neighbour.addrIP, tlv.content.neighbour.port);
 			//Ajout à TVP d'un ID inconnu, qui sera identifié lors d'un Hello éventuel venant de cette adresse IP.
 			TVP[toAdd];
@@ -401,7 +402,7 @@ void manageWarnings(list<TLV>& tlvs)
 {
 	for (TLV tlv : tlvs)
 	{
-		tlv.content.data.data[tlv.content.warning.length - 1] = '\0';
+		tlv.content.warning.message[tlv.content.warning.length - 1] = '\0';
 		writeLine("[Service] " + string(tlv.content.warning.message));
 		freeTLV(tlv);
 	}

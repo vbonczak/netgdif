@@ -36,9 +36,10 @@
 
 L'implémentation d'un système de discussion publique et distribué comporte plusieurs parties dont la plus importante reste la mise en œuvre d'un algorithme \emph{distribué}. Pour ce projet, le sujet fournissait cet algorithme, restait donc l'implémentation.
 
+Cette dernière a été réalisée en C++\footnote{Standard C++14.} à l'aide  des fonctions de la bibliothèque standard, ainsi que de la bibliothèque d'affichage en mode texte \texttt{ncurses}.
+
 \subsection{État du projet}
 
-L'exécutable \texttt{netgdif} envoie toutes 
 
 En plus des attentes du sujet minimal, sans attention particulière à fonctionner en IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
 une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
@@ -51,7 +52,7 @@ envoie le plus de TLV possible dans un paquet UDP. Si il n'y a pas assez de TLV,
 \item[Découverte multicast]Les Hello courts sont envoyés en multicast sur le port 1212.
 
 \item[Fragmentation] Il est possible d'envoyer des messages de plus de 254 caractères grâce à un mécanisme de fragmentation sommaire qui envoie autant de 
-TLV Data que nécessaire.
+TLV Data que nécessaire\footnote{La remise dans l'ordre n'est cependant pas au point.}.
 \end{description}
 
 Nous nous sommes intéressés également au transfert de fichier, mais sans aller au bout : voici néanmoins notre proposition pour effectuer ce type de transfert:
@@ -83,6 +84,10 @@ Avec ce moyen, on transmet un fichier par blocs de 251 octets (on peut transfér
 Lors de la réception par le destinataire, le fichier est écrit en utilisant des fonctions de type \emph{fseek} pour changer la position courante et remplir
 les blancs. Un acquittement est envoyé, de façon analogue à la procédure pour les TLV Data.
 
+\subsection{Tester le projet}
+
+Après compilation (avec \texttt{make} à l'aide de \texttt{g++}}
+
 \section{Implémentation}
 
 \subsection{Garanties}
@@ -98,7 +103,7 @@ n'est pris en compte).
 \subsection{L'algorithme}
 	
 	Il consiste en l'exécution de deux \emph{threads} en permanence, avec des \emph{threads} secondaires lancés pour attendre des données entrantes.
-	Le 
+	Le premier permet la saisie de l'utilisateur (le défilement est réalisé avec \texttt{ncurses}), et le second accueille tout le traitement du protocole.
 	
 	\begin{figure}[ht!]
 		\centering
@@ -118,10 +123,18 @@ n'est pris en compte).
 	
 	\item Sur réception d'un Hello court, envoi d'un Hello long à cette personne s'il n'est pas dans notre table d'actifs.
 	
-	\item  Toutes les secondes, 
+	\item  Toutes les secondes, la table TVA est parcourue et les statuts de symétrie sont mis à jour selon l'instant de réception du dernier hello long.
+	Des voisins sont supprimés s'ils sont inactifs.
 
 	\end{itemize}
 	
+	\subsection{Erreurs}
+	
+	Le programme a été testé sur les systèmes de la salle informatique de l'ENS (des Linux basés sur Debian type Ubuntu), à distance avec \emph{Secure Shell}.
+	Le multicast a donc été testé dans la limite de la salle (un commutateur assurant la liaison).
+	
+	Pendant ces séances de test, quelques fois, un voisin potentiel fantôme s'immisce dans la TVP (il ne correspond pas aux adresses IP connues). Ce voisin n'envoie
+	jamais de Hello...
 	
 \section{Conclusion}
 	
@@ -129,6 +142,11 @@ n'est pris en compte).
 	de réseau : transfert de données avec UDP, l'utilisation d'IPv6 et le \emph{multicast} amélioré que cette norme permet, mais aussi les rudiments
 	 de programmation système et de gestion bas niveau de la machine.
 	
-	Même si
+	Une des perspectives serait de sécuriser totalement le programme (quelques cas d'erreurs de dépassement subsistent envers et contre tout), pour ensuite
+	ouvrir la voie à des applications de plus haut niveau : le transfert de fichier comme vu plus haut, ou la messagerie pair à pair privée par exemple.
 	
+	\medskip
+	
+	Enfin d'un point de vue plus pratique, le code pourrait être clarifié et mieux organisé. En effet et malgré nos efforts, certaines parties sont peu commentées
+	ou documentées. Néanmoins nous avons documenté les fonctions les plus importantes (à l'aide du style XML).
 \end{document}

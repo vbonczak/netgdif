@@ -4,12 +4,14 @@ SRC:=$(wildcard  $(SRCDIR)/*.cpp)
 OBJ = $(SRC:.cpp=.o)
 DEPS := $(OBJ:.o=.d)
 
-CXXFLAGS += -std=c++14 -MMD -MP -Wno-write-strings
+CXXFLAGS += -std=c++14 -O3 -MMD -MP -Wno-write-strings
 
 LIBS = -lpthread  -lncurses 
 
-all: CXXFLAGS += -g
 all: netgdif
+
+verbose: CXXFLAGS += -DVERBOSE
+verbose: netgdif
 
 netgdif: $(OBJ)
 	$(CXX) $(LDFLAGS)  $^ -o $@ $(LIBS)
@@ -23,3 +25,5 @@ clean:
 	rm -f $(DEPS)
 	
 -include $(DEPS)
+
+.PHONY: verbose

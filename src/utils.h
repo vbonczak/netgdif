@@ -66,7 +66,7 @@ void InitUtils();
 
 void QuitUtils();
 
-#define VERBOSE
+//#define VERBOSE
 
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
