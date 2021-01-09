@@ -10,7 +10,7 @@
 %%															%%                         %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\documentclass[12pt,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc} 				%% Single Byte Per Letter. Use Unicode if you are not using listings
 \usepackage[french]{babel}
 \usepackage[T1]{fontenc}
@@ -32,7 +32,29 @@
 	\end{abstract}
 	
 	
-\section{}
+\section{Introduction}
+
+L'implémentation d'un système de discussion publique et distribué comporte plusieurs parties dont la plus importante reste la mise en œuvre d'un algorithme \emph{distribué}.
+
+\subsection{État du projet}
+
+En plus des attentes du sujet minimal, sans attention particulière à fonctionner en IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
+une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
+idoine du port 1212 pour les Hello courts -- et de communiquer son adresse aux voisins\footnote{Sous forme \emph{IPv4-Mapped}.} 
+
+Nous avons développé les extensions suivantes
+
+\section{Implémentation}
+
+\subsection{Garanties}
+
+Dès le départ, nous nous sommes appliqués à respecter et à vérifier scrupuleusement les règles du protocole. En particulier toutes les tailles sont vérifiées, et le remplissage
+d'un paquet PadN est observé entièrement pour s'assurer qu'aucune information ne figure dans le champ \f{MBZ}. Ceci permet d'éviter la plupart des attaques visant à provoquer 
+une erreur de segmentation. Même lorsqu'il ne s'agit pas d'une attaque, mais juste d'une erreur de calcul de la part d'un autre pair, notre solution reste robuste grâce à
+ces considérations.
+
+Lorsqu'une erreur est détectée, un TLV GoAway de code 3 est envoyé à l'emmeteur en cause. D'autre part, les TLV Data non valides ne sont pas inondés (comme aucun TLV invalide 
+n'est pris en compte).
 	
 	Les TLV en attente (Data et neighbour) sont soit envoyés toutes les 5 secondes.
 	

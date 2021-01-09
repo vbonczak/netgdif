@@ -44,7 +44,7 @@ void freeTLV(TLV& tlv)
 		delete[] tlv.content.warning.message;
 		break;
 	default:
-		//Pas de bloc variable
+		//Pas de bloc variable alloué sur le tas.
 		break;
 	}
 }

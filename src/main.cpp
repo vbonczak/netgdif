@@ -72,6 +72,13 @@ void parseLine(string line)
 		{
 			//TODO transfert de fichier
 		}
+		else if (cmd == "/malicious")
+		{
+			//Envoi d'un TLV PadN avec un 1
+			TLV padN = tlvPadN(32);
+			padN.content.padN.MBZ[16] = 1;
+			pushTLVToSend(padN);
+		}
 	}
 	else
 	{
@@ -136,8 +143,12 @@ void background()
 
 			//Décodage
 			MIRC_DGRAM dgram;
-			parseDatagram(rawUDP, rawUDP_len, dgram);
+			int status = parseDatagram(rawUDP, rawUDP_len, dgram);
+
 			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
+
+			if (status == PARSE_EINVALID)
+				pushTLVToSend(tlvGoAway(TLV_GOAWAY_VIOLATION, 65, "Vous avez envoyé un message comportant au moins un TLV invalide."), ad);
 
 			manageDatagram(dgram, ad);
 
@@ -327,6 +338,10 @@ void manageGoAways(list<TLV>& tlvs, ADDRESS& from)
 {
 	for (TLV tlv : tlvs)
 	{
+		if (tlv.content.goAway.code == TLV_GOAWAY_VIOLATION)
+		{
+			DEBUG("reçu violation : " + string(tlv.content.goAway.message));
+		}
 		eraseFromTVA(from);
 
 		freeTLV(tlv);

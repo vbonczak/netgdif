@@ -18,13 +18,13 @@ extern int minSymNeighbours;
 #define MIRC_MAGIC			95
 
 /*Codes d'erreur*/
-#define PARSE_EWRONGMAGIC	0x1
-#define PARSE_EUNKNOWN		0x2
-#define PARSE_EEMPTY		0x3
-#define PARSE_EUNSUPPORTED	0x4
-#define PARSE_ETOOBIG		0x5
-#define PARSE_EEMPTYTLV		0x6
-#define PARSE_EINVALID		0x7
+#define PARSE_EWRONGMAGIC	0x1		//Erreur de signature
+#define PARSE_EUNKNOWN		0x2		//Erreur de version de MIRC
+#define PARSE_EEMPTY		0x3		//Datagramme vide ou trop petit
+#define PARSE_EUNSUPPORTED	0x4		//TLV inconnu
+#define PARSE_ETOOBIG		0x5		//TLV trop gros
+#define PARSE_EEMPTYTLV		0x6		//TLV pas assez grand ou vide
+#define PARSE_EINVALID		0x7		//Violation de protocole
 
 
 

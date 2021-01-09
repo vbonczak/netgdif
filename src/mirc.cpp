@@ -52,6 +52,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 
 	unsigned int length = 0;
 	int ret = 0;
+	int globRet = 0;
 	while (sz > 0)
 	{
 		TLV_data cur;
@@ -102,15 +103,19 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			DEBUG(" >>>>>>>>>>> " + tlvToString(curtlv));
+			DEBUG(" Réception " + tlvToString(curtlv));
 		}
 		else
 		{
+			if (ret == PARSE_EINVALID)
+			{
+				//Violation du protocole
+				globRet = ret;
+			}
 			DEBUG(mircstrerror(ret));
-			readLine();
 		}
 	}
-
+	return globRet;
 }
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
@@ -121,21 +126,26 @@ int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 	unsigned char lgt = body[0];
 
 	if (lgt > sz - 1)
+	{
+		*parsedLength = sz;
 		return PARSE_ETOOBIG;
+	}
 
-	for (int i = 1; i < lgt; i++)
+	*parsedLength = lgt + 1;	/*Conversion sans perte*/
+
+	for (int i = 1; i < lgt + 1; i++)
 	{
 		if (body[i] != 0)
 			return PARSE_EINVALID;
 	}
-
-	*parsedLength = lgt + 1;	/*Conversion sans perte*/
 
 	return 0;
 }
 
 int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_data& tlv)
 {
+	*parsedLength = body[0] + 1;
+
 	if (sz < 9) /*Au moins l'octet de la longueur et le format HELLO court*/
 		return PARSE_EEMPTYTLV;
 
@@ -149,12 +159,12 @@ int parseTLV_Hello(char* body, unsigned int sz, unsigned int* parsedLength, TLV_
 		memcpy(tlv.hello.sourceID, body + 1, 8);
 		memcpy(tlv.hello.destID, body + 9, 8);
 		tlv.hello.longFormat = true;
-
 	}
 	else
+	{
 		return PARSE_EINVALID;
+	}
 
-	*parsedLength = body[0] + 1;
 
 	return 0;
 }
@@ -367,7 +377,6 @@ void pushPendingForFlood()
 
 void pushTLVToSend(TLV tlv, const ADDRESS& dest)
 {
-	//*tlv.copyCount++;
 	toSend[dest].push_back(tlv);
 }
 
@@ -396,12 +405,7 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		TLV cur = listSend.front();
 
 		len = encodeTLV(cur, data);
-		/**cur.copyCount--;
-		if (*cur.copyCount == 0)
-		{
-			DEBUG("Copies 0");
-			freeTLV(cur);
-		} *///Guérir des fuites de mémoire, pour plus tard (pas fini)
+
 		if (totalLength + len > 1024)
 		{
 			//Trop gros pour UDP
@@ -412,27 +416,30 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		listSend.pop_front();
 	}
 
-	/*
-	switch (1024 - totalLength)
-	{
-	case 0:
-		//Pas de problème
-		break;							//	Zone commentée car le comblage est sans objet pour l'instant //
-	case 1:
-		//pad1 pour combler
-		buf[1024 - 1] = 0;
-		break;
-	default:
-		//padN pour combler
-		len = encodeTLV(tlvPadN(1024 - 2 - totalLength), data);
-		memcpy(buf + totalLength, data, len);
-		break;
-	}
-	*/
-
 	//On n'envoie pas de paquet vide.
 	if (totalLength > 4)
 	{
+		//Pour utiliser tout l'espace que UDP nous permet.
+		switch (1024 - totalLength)
+		{
+		case 0:
+			//Pas de problème
+			break;
+		case 1:
+			//pad1 pour combler
+			buf[1024 - 1] = 0;
+			totalLength += 1;
+			break;
+		default:
+			//padN pour combler (un peu)
+			TLV pad = tlvPadN(min(255, 1024 - totalLength));
+			len = encodeTLV(pad, data);
+			freeTLV(pad);
+			memcpy(buf + totalLength, data, len);
+			totalLength += len;
+			break;
+		}
+
 		unsigned short len = ShortToNetwork(totalLength - 4);
 		memcpy(buf + 2, (char*)&len, 2);
 		socklen_t l = sizeof(address.nativeAddr);
@@ -558,15 +565,6 @@ int encodeTLV(TLV t, char* outData)
 
 void eraseFromSendList(const ADDRESS& a)
 {
-	/*for (TLV t : toSend[a])
-	{
-		*(t.copyCount)--;
-		if (*t.copyCount == 0)
-		{
-			DEBUG("Copies 0");
-			freeTLV(t);
-		}
-	}*/
 	toSend.erase(a);
 }
 

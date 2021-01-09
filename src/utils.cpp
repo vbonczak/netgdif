@@ -205,7 +205,7 @@ int GetTime()
 void InitUtils()
 {
 	srand(static_cast<unsigned int>(time(NULL)));
-	textBuffer = new char[256];
+	textBuffer = new char[2048];
 
 #ifndef VERBOSE
 	//Affichage avec curses
