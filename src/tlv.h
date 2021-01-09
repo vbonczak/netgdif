@@ -17,8 +17,8 @@ using namespace std;
 #define TLV_ACK				5
 #define TLV_GOAWAY			6
 #define TLV_WARNING			7
-#define TLV_FILE			8
-#define TLV_MaxType			8
+#define TLV_FILE			0xf1
+#define TLV_MaxType			7
 
 #define TLV_MAXSIZE			257
 typedef char UUID[8];

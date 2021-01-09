@@ -223,10 +223,19 @@ void Table_RefreshTVA()
 void Flood()
 {
 	int time = GetTime();
+	
+	list<DATAID> toRem;
+
 	for (auto& entry : RR)
 	{
 		const DATAID& id = entry.first;
 		DATAINFO& info = entry.second;
+		
+		if (info.toFlood.size() == 0)
+		{
+			toRem.push_back(id);
+			freeTLV(info.tlv);
+		}
 
 		for (auto& dest : info.toFlood)
 		{
@@ -256,6 +265,8 @@ void Flood()
 			}
 		}
 	}
+	for (DATAID id : toRem)
+		RR.erase(id);
 }
 
 void sendHello(list<ADDRESS>& nonSym)

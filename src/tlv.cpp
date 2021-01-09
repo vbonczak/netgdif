@@ -22,8 +22,10 @@ MIRC_DGRAM dgramInit()
 
 	for (int i = TLV_HELLO; i <= TLV_MaxType; i++)
 	{
-		ret[i] = list<TLV>();
+		ret[i];
 	}
+
+	ret[TLV_FILE];
 
 	return ret;
 }
