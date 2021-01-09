@@ -60,9 +60,13 @@ void parseLine(string line)
 		if (i == line.npos)
 			cmd = line;
 		else
+		{
 			cmd = line.substr(0, i);
-		i = line.find_first_not_of(' ', i);
-		line = line.substr(i);
+			i = line.find_first_not_of(' ', i);
+			if (i != line.npos)
+				line = line.substr(i);
+		}
+
 		if (cmd == "/nick")
 		{
 			nickname = line;
