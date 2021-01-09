@@ -251,7 +251,8 @@ void receive(int fd, struct sockaddr_in6* client, bool* readFlag, bool* receivin
 	*readFlag = false;
 	char* dst = new char[100];
 
-	inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
+	if (inet_ntop(AF_INET6, &client->sin6_addr, dst, len) == NULL)
+		writeErr("err inetpton");
 
 	DEBUG("Reçu paquet (" + to_string(*recvLen) + ") de " + string(dst) + " port " + to_string(ShortFromNetwork(client->sin6_port)));
 	//DEBUGHEX(rawUDP, rawUDP_len);

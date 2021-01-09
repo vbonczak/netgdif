@@ -270,11 +270,8 @@ void writeLine(string line)
 
 void writeErr(string line)
 {
-#ifdef VERBOSE
-	cout << line << endl;
-#else
 	writeLine(line + " : " + string(strerror(errno)));
-#endif
+
 }
 
 string readLine()
