@@ -28,7 +28,6 @@ int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 		return PARSE_EUNSUPPORTED;
 		break;
 	}
-
 }
 
 int parseDatagram0(char* data, unsigned int length, MIRC_DGRAM& content)
@@ -61,7 +60,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 		switch (type)
 		{
 		case TLV_PAD1:				/*Silencieusement ignoré*/
-			length = 8;
+			length = 1;
 			break;
 		case TLV_PADN:				/*Ignoré de même*/
 			ret = parseTLV_PADN(body + 1, sz - 1, &length);
@@ -97,7 +96,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 
 		body += length;
 		sz -= length;
-		if (ret == 0 && type != TLV_PADN)
+		if (ret == 0 && type > TLV_PADN)
 		{
 			//ajout à la liste des TLV 
 			TLV curtlv(type);

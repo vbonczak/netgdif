@@ -387,6 +387,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
 			writeErr("Erreur");
+		DEBUG("Port : " + to_string(servaddr.sin6_port));
 		delete[] dst;
 	}
 	*addr = servaddr;

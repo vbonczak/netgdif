@@ -38,11 +38,18 @@ L'implémentation d'un système de discussion publique et distribué comporte pl
 
 \subsection{État du projet}
 
+Le 
+
 En plus des attentes du sujet minimal, sans attention particulière à fonctionner en IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
 une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
 idoine du port 1212 pour les Hello courts -- et de communiquer son adresse aux voisins\footnote{Sous forme \emph{IPv4-Mapped}.} 
 
-Nous avons développé les extensions suivantes
+En outre, nous avons développé les extensions suivantes (en plus de la sécurité de l'implémentation) :
+\begin{description}
+\item[Agrégation] Les TLV sont placés dans une liste d'attente (\f{toSend}) indexée par les adresses de destination. Pour chaque destinataire, la fonctio \f{sendPendingTLVs}
+envoie le plus de TLV possible dans un paquet UDP. Si il n'y a pas assez de TLV, elle remplit au minimum le paquet avec un PadN de 255 octets.
+\item[Découverte multicast]Les Hello courts sont envoyés en multicast sur le port 1212.
+\end{description}
 
 \section{Implémentation}
 
