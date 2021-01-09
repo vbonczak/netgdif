@@ -271,7 +271,7 @@ void sendHello(list<ADDRESS>& nonSym)
 		unsigned short ll = ShortToNetwork(count);
 		memcpy(buf + 2, (char*)(&ll), 2);
 		socklen_t l = sizeof(multiaddr);
-		sendto(multifd, buf, count + 4, 0, (struct sockaddr*)(&multiaddr), l);
+		sendto(fd, buf, count + 4, 0, (struct sockaddr*)(&multiaddr), l);
 		freeTLV(h);
 		delete[] buf;
 	}

@@ -23,6 +23,7 @@ using namespace std;
 
 #define MULTICAST_PORT	1212
 extern int multifd;
+extern int fd;
 extern string multiIP;
 extern struct sockaddr_in6 multiaddr;
 

@@ -4,6 +4,7 @@ int multifd = -1;
 string multiIP = "ff02::4242:4242";
 struct sockaddr_in6 multiaddr;
 char* textBuffer;
+int fd;	//le socket de notre connexion
 
 #ifndef VERBOSE
 

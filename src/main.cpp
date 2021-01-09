@@ -70,6 +70,10 @@ void parseLine(string line)
 		{
 			//TODO transfert de fichier
 		}
+		else if (cmd == "/quit")
+		{
+			quit = true;
+		}
 		else if (cmd == "/malicious")
 		{
 			//Envoi d'un TLV PadN avec un 1
@@ -120,7 +124,7 @@ void background()
 	bool multireceiving = false;
 
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
-	int fd;	//le socket de notre connexion
+	
 
 	int time = 0;
 	int lastNeighbourSentTime = 0;
@@ -142,13 +146,16 @@ void background()
 		quit = true;
 		return;
 	}
+	 
+	DEBUG("fd = " + to_string(fd));
+	DEBUG("multifd = " + to_string(multifd));
 
 	while (!quit)
 	{
 		time = GetTime();
 
 		//Gestion de la réception
-		doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
+		//doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
 		doReceive(&multireceiver, multifd, &multirawUDP_read, &multireceiving, &multirawUDP_len, multirawUDP, &multiclient);
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
@@ -205,8 +212,8 @@ void background()
 	close(multifd);
 	close(fd);
 
-	receiver->join();
-	delete receiver;
+	//receiver->join();
+	//delete receiver;
 	multireceiver->join();
 	delete multireceiver;
 
@@ -226,7 +233,7 @@ void doReceive(thread** recvThread, int socket, bool* readFlag, bool* receivingF
 		//Décodage
 		MIRC_DGRAM dgram;
 		int status = parseDatagram(rawUDP, *recvLen, dgram);
-
+		DEBUG("reçu sur la socket" + to_string(socket));
 		ADDRESS ad = mapIP((struct sockaddr_in*)sender);
 
 		if (status == PARSE_EINVALID)
