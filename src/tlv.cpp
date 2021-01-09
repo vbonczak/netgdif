@@ -34,6 +34,7 @@ void freeTLV(TLV& tlv)
 	{
 	case TLV_PADN:
 		delete[] tlv.content.padN.MBZ;
+		break;
 	case TLV_DATA:
 		delete[] tlv.content.data.data;
 		break;
