@@ -41,13 +41,13 @@ Cette dernière a été réalisée en C++\footnote{Standard C++14.} à l'aide  d
 \subsection{État du projet}
 
 
-En plus des attentes du sujet minimal, sans attention particulière à fonctionner en IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
+Le sujet minimal a été suivi, avec quelques extensions détaillées dans la suite. Nous n'avons cependant pas couvert IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
 une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
-idoine du port 1212 pour les Hello courts -- et de communiquer son adresse aux voisins\footnote{Sous forme \emph{IPv4-Mapped}.} 
+idoine pour ses Hello courts -- et de communiquer son adresse aux voisins\footnote{Sous forme \emph{IPv4-Mapped}.} 
 
 En outre, nous avons développé les extensions suivantes (en plus de la sécurité de l'implémentation) :
 \begin{description}
-\item[Agrégation] Les TLV sont placés dans une liste d'attente (\f{toSend}) indexée par les adresses de destination. Pour chaque destinataire, la fonctio \f{sendPendingTLVs}
+\item[Agrégation] Les TLV sont placés dans une liste d'attente (\f{toSend}) indexée par les adresses de destination. Pour chaque destinataire, la fonction \f{sendPendingTLVs}
 envoie le plus de TLV possible dans un paquet UDP. Si il n'y a pas assez de TLV, elle remplit au minimum le paquet avec un PadN de 255 octets.
 \item[Découverte multicast]Les Hello courts sont envoyés en multicast sur le port 1212.
 
@@ -87,9 +87,10 @@ les blancs. Un acquittement est envoyé, de façon analogue à la procédure pou
 \subsection{Tester le projet}
 
 Après compilation (avec \texttt{make} à l'aide de \texttt{g++}), il suffit de lancer \texttt{./netgdif}. Il vous sera demandé un pseudo, que vous pourrez changer
-plus tard avec la commande \texttt{/nick <pseudo>}. 
+plus tard avec la commande \texttt{/nick <pseudo>}.  Pour quitter, tapez Ctrl+C ou \texttt{/quit}.
 
-En cas de problème, il est possible de compiler avec l'option \texttt{-DVERBOSE}, 
+En cas de problème, il est possible de compiler avec l'option \texttt{-DVERBOSE}, qui affiche presque tout ce qui se passe dans l'algorithme (l'affichage défilant 
+est d'ailleurs désactivé, ce qui permet de conserver la trace d'exécution une fois le programme terminé).
 
 \section{Implémentation}
 
@@ -118,7 +119,7 @@ n'est pris en compte).
 	Quelques détails de gestion, notamment concernant les délais d'envoi:
 	
 	\begin{itemize}
-		\item 	Les TLV en attente (Data et Neighbour) sont soit envoyés toutes les 5 secondes, et les Hello courts toutes les 5 secondes également (en multicast, de façon 	directe sans passer par la mise en attente).
+		\item 	Les TLV en attente (Data et Neighbour) sont envoyés toutes les 5 secondes, et les Hello courts toutes les 5 secondes également (en multicast, de façon 	directe sans passer par la mise en attente).
 	
 	\item On supprime le voisin de la TVA lors de la réception d'un GoAway de sa part.
 	
@@ -151,5 +152,6 @@ n'est pris en compte).
 	\medskip
 	
 	Enfin d'un point de vue plus pratique, le code pourrait être clarifié et mieux organisé. En effet et malgré nos efforts, certaines parties sont peu commentées
-	ou documentées. Néanmoins nous avons documenté les fonctions les plus importantes (à l'aide du style XML).
+	ou documentées. Néanmoins nous avons documenté les fonctions les plus importantes (à l'aide du style XML/MSDN/Doxygen), et nous nous sommes appliqués à
+	utiliser une convention de nommage cohérente.
 \end{document}
