@@ -155,7 +155,7 @@ void background()
 		time = GetTime();
 
 		//Gestion de la réception
-		//doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
+		doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
 		doReceive(&multireceiver, multifd, &multirawUDP_read, &multireceiving, &multirawUDP_len, multirawUDP, &multiclient);
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
@@ -212,8 +212,8 @@ void background()
 	close(multifd);
 	close(fd);
 
-	//receiver->join();
-	//delete receiver;
+	receiver->join();
+	delete receiver;
 	multireceiver->join();
 	delete multireceiver;
 
