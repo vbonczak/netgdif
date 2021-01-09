@@ -111,13 +111,13 @@ void background()
 
 	//Gestion de reception des paquets en parallèle, pour éviter un blocage
 	char rawUDP[1024];
-	
+	char multirawUDP[1024];
 	int rawUDP_len = 0;
-
+	int multirawUDP_len = 0;
 	bool rawUDP_read = true;
-	
+	bool multirawUDP_read = true;
 	bool receiving = false;
-	
+	bool multireceiving = false;
 
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
 	int fd;	//le socket de notre connexion
@@ -133,7 +133,7 @@ void background()
 	thread* multireceiver;
 
 	struct sockaddr_in6 client; //Le client reçu par le thread receveur
-	
+	struct sockaddr_in6 multiclient; //Le client reçu par le thread receveur multicast
 	struct sockaddr_in6 myaddr; //notre adresse physique liée à l'interface de communication, que l'on communique aux autres par Neighbour;
 
 	if (setup(&servaddr, fd, multifd, &myaddr) < 0)
@@ -149,7 +149,7 @@ void background()
 
 		//Gestion de la réception
 		doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
-		
+		doReceive(&multireceiver, multifd, &multirawUDP_read, &multireceiving, &multirawUDP_len, multirawUDP, &multiclient);
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
@@ -200,15 +200,15 @@ void background()
 	}
 
 	shutdown(fd, SHUT_RDWR); //pour que recv retourne immédiatement
-	
+	shutdown(multifd, SHUT_RDWR); //pour que recv retourne immédiatement
 
 	close(multifd);
 	close(fd);
 
 	receiver->join();
 	delete receiver;
-	
-	
+	multireceiver->join();
+	delete multireceiver;
 
 	mircQuit();
 
@@ -388,7 +388,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 	/*Connexion à la socket*/
 
 	//La variable globale multifd sert à envoyer des paquets en multicast ipv6
-	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd, physaddr);
+	fd = NewSocket(SOCK_DGRAM, 0, (struct sockaddr*)&servaddr, multifd, physaddr);
 	if (fd < 0)
 	{
 		writeErr("Problème de création de connexion.");
