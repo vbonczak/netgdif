@@ -4,12 +4,6 @@
 //Le surnom
 string nickname;
 
-//Gestion de reception des paquets en parallèle, pour éviter un blocage
-char rawUDP[1024];
-int rawUDP_len = 0;
-bool rawUDP_read = true;
-bool receiving = false;
-
 int main(int argc, char* argv[])
 {
 	InitUtils();
@@ -114,6 +108,17 @@ void background()
 {
 	if (quit)
 		return;
+
+	//Gestion de reception des paquets en parallèle, pour éviter un blocage
+	char rawUDP[1024];
+	char multirawUDP[1024];
+	int rawUDP_len = 0;
+	int multirawUDP_len = 0;
+	bool rawUDP_read = true;
+	bool multirawUDP_read = true;
+	bool receiving = false;
+	bool multireceiving = false;
+
 	struct sockaddr_in6 servaddr;//notre adresse (locale)
 	int fd;	//le socket de notre connexion
 
@@ -125,7 +130,10 @@ void background()
 
 	//Recevoir des paquets en parallèle, pour éviter de bloquer sur un recvfrom
 	thread* receiver;
+	thread* multireceiver;
+
 	struct sockaddr_in6 client; //Le client reçu par le thread receveur
+	struct sockaddr_in6 multiclient; //Le client reçu par le thread receveur multicast
 	struct sockaddr_in6 myaddr; //notre adresse physique liée à l'interface de communication, que l'on communique aux autres par Neighbour;
 
 	if (setup(&servaddr, fd, multifd, &myaddr) < 0)
@@ -139,32 +147,9 @@ void background()
 	{
 		time = GetTime();
 
-		if (!rawUDP_read)
-		{
-			//le receveur a rempli le paquet
-			receiver->join();
-			delete receiver;
-
-			//Décodage
-			MIRC_DGRAM dgram;
-			int status = parseDatagram(rawUDP, rawUDP_len, dgram);
-
-			ADDRESS ad = mapIP((struct sockaddr_in*)&client);
-
-			if (status == PARSE_EINVALID)
-				pushTLVToSend(tlvGoAway(TLV_GOAWAY_VIOLATION, 65, "Vous avez envoyé un message comportant au moins un TLV invalide."), ad);
-
-			manageDatagram(dgram, ad);
-
-			rawUDP_read = true; //nous l'avons lu
-		}
-
-		if (!receiving && rawUDP_read)
-		{
-			//Lance un receveur
-			receiving = true;
-			receiver = new thread(receive, fd, &client);
-		}
+		//Gestion de la réception
+		doReceive(&receiver, fd, &rawUDP_read, &receiving, &rawUDP_len, rawUDP, &client);
+		doReceive(&multireceiver, multifd, &multirawUDP_read, &multireceiving, &multirawUDP_len, multirawUDP, &multiclient);
 
 		if (time - lastNeighbourSentTime > NEIGHBOUR_FLOODING_DELAY)
 		{
@@ -215,33 +200,63 @@ void background()
 	}
 
 	shutdown(fd, SHUT_RDWR); //pour que recv retourne immédiatement
+	shutdown(multifd, SHUT_RDWR); //pour que recv retourne immédiatement
 
 	close(multifd);
 	close(fd);
 
 	receiver->join();
 	delete receiver;
+	multireceiver->join();
+	delete multireceiver;
 
 	mircQuit();
 
 	freeAllTables();
 }
 
+void doReceive(thread** recvThread, int socket, bool* readFlag, bool* receivingFlag, int* recvLen, char* rawUDP, struct sockaddr_in6* sender)
+{
+	if (!*readFlag)
+	{
+		//le receveur a rempli le paquet
+		(*recvThread)->join();
+		delete  (*recvThread);
 
+		//Décodage
+		MIRC_DGRAM dgram;
+		int status = parseDatagram(rawUDP, *recvLen, dgram);
 
-void receive(int fd, struct sockaddr_in6* client)
+		ADDRESS ad = mapIP((struct sockaddr_in*)sender);
+
+		if (status == PARSE_EINVALID)
+			pushTLVToSend(tlvGoAway(TLV_GOAWAY_VIOLATION, 65, "Vous avez envoyé un message comportant au moins un TLV invalide."), ad);
+
+		manageDatagram(dgram, ad);
+
+		*readFlag = true; //nous l'avons lu
+	}
+
+	if (!*receivingFlag && *readFlag)
+	{
+		//Lance un receveur
+		*receivingFlag = true;
+		*recvThread = new thread(receive, socket, sender, readFlag, receivingFlag, recvLen, rawUDP);
+	}
+}
+void receive(int fd, struct sockaddr_in6* client, bool* readFlag, bool* receivingFlag, int* recvLen, char* rawUDP)
 {
 	socklen_t len = sizeof(*client);
-	rawUDP_len = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
-	rawUDP_read = false;
-	//char* dst = new char[100];
+	*recvLen = recvfrom(fd, rawUDP, 1024, 0, (struct sockaddr*)client, &len);
+	*readFlag = false;
+	char* dst = new char[100];
 
-	//inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
+	inet_ntop(AF_INET6, &client->sin6_addr, dst, len);
 
-	//DEBUG("Reçu paquet (" + to_string(rawUDP_len) + ") de " + string(dst));
+	DEBUG("Reçu paquet (" + to_string(*recvLen) + ") de " + string(dst) + " port " + to_string(ShortFromNetwork(client->sin6_port)));
 	//DEBUGHEX(rawUDP, rawUDP_len);
-	//delete[] dst;
-	receiving = false;
+	delete[] dst;
+	*receivingFlag = false;
 }
 
 ADDRESS mapIP(struct sockaddr_in* addr)
@@ -371,7 +386,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 	/*Connexion à la socket*/
 
 	//La variable globale multifd sert à envoyer des paquets en multicast ipv6
-	fd = NewSocket(SOCK_DGRAM, MULTICAST_PORT, (struct sockaddr*)&servaddr, multifd, physaddr);
+	fd = NewSocket(SOCK_DGRAM, 0, (struct sockaddr*)&servaddr, multifd, physaddr);
 	if (fd < 0)
 	{
 		writeErr("Problème de création de connexion.");
@@ -387,7 +402,7 @@ int setup(struct sockaddr_in6* addr, int& fd, int& fd_multicast, struct sockaddr
 		socklen_t len = sizeof(servaddr);
 		if (inet_ntop(AF_INET6, &servaddr.sin6_addr, dst, len) == NULL)
 			writeErr("Erreur");
-		DEBUG("Port : " + to_string(servaddr.sin6_port));
+		DEBUG("Port : " + to_string(ShortFromNetwork(servaddr.sin6_port)));
 		delete[] dst;
 	}
 	*addr = servaddr;

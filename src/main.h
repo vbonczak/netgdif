@@ -41,11 +41,28 @@ void sendMessage(string msg);
 void background();
 
 /// <summary>
-/// Troisième fil d'exécution chargé d'attendre un paquet
+/// 
+/// </summary>
+/// <param name="recvThread"></param>
+/// <param name="socket"></param>
+/// <param name="readFlag"></param>
+/// <param name="receivingFlag"></param>
+/// <param name="recvLen"></param>
+/// <param name="rawUDP"></param>
+/// <param name="sender"></param>
+void doReceive(thread** recvThread, int socket, bool* readFlag, bool* receivingFlag, int* recvLen, char* rawUDP, sockaddr_in6* sender);
+
+/// <summary>
+/// Fil d'exécution chargé d'attendre un paquet
 /// </summary>
 /// <param name="fd"></param>
 /// <param name="client"></param>
-void receive(int fd, sockaddr_in6* client);
+/// <param name="readFlag"></param>
+/// <param name="receivingFlag"></param>
+/// <param name="recvLen"></param>
+/// <param name="rawUDP"></param>
+void receive(int fd, sockaddr_in6* client, bool* readFlag, bool* receivingFlag, int* recvLen, char* rawUDP);
+ 
 
 /// <summary>
 /// Encapsule l'adresse physique (IP4 ou 6) dans notre structure ADDRESS.

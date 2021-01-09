@@ -36,7 +36,6 @@ int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, st
 	addr.sin6_family = AF_INET6;
 	addr.sin6_port = htons(port); /*Conversion de boutisme*/
 
-
 	if (setupMulticast(fd, fd_multicast, physicaladdr) != 0)
 	{
 		//Multicast non disponible
@@ -84,7 +83,7 @@ int setupMulticast(int fd, int& fd_multicast, struct sockaddr_in6* myInterfaceAd
 	len_p_addr = sizeof(struct sockaddr_in6);
 	inet_pton(AF_INET6, multiIP.c_str(), &(multiaddr.sin6_addr));
 	multiaddr.sin6_family = AF_INET6;
-	multiaddr.sin6_port = htons(MULTICAST_PORT); /*Conversion de boutisme*/
+	multiaddr.sin6_port = ShortToNetwork(MULTICAST_PORT); /*Conversion de boutisme*/
 	multiaddr.sin6_scope_id = findMulticastInterface(myInterfaceAddr);
 
 	if (bind(fd_multicast, (struct sockaddr*)&multiaddr, len_p_addr) == -1) {
