@@ -120,6 +120,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 
@@ -317,6 +318,8 @@ TLV tlvAck(TLV& data)
 
 TLV tlvPadN(unsigned char len)
 {
+	DEBUG(string(__PRETTY_FUNCTION__));
+
 	TLV ret(TLV_PADN);
 	ret.content.padN.len = len;
 	ret.content.padN.MBZ = new char[len];
@@ -433,7 +436,9 @@ void sendPendingTLVs(int fd, const ADDRESS& address)
 		default:
 			//padN pour combler (un peu)
 			TLV pad = tlvPadN(min(255, 1024 - totalLength));
+			DEBUG("padN " + to_string(pad.content.padN.len));
 			len = encodeTLV(pad, data);
+			DEBUGHEX(pad.content.padN.MBZ, pad.content.padN.len);
 			freeTLV(pad);
 			memcpy(buf + totalLength, data, len);
 			totalLength += len;
