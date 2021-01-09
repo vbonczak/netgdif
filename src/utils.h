@@ -65,8 +65,6 @@ void InitUtils();
 
 void QuitUtils();
 
-#define VERBOSE
-
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
 #define DEBUGHEX(x,y)	verbosehex(x,y)
@@ -76,6 +74,8 @@ void verbosehex(char* data, int l);
 #define DEBUG(x)	
 #define DEBUGHEX(x,y)
 #endif
+
+
 
 #define MINUTE	60000
 

@@ -5,27 +5,16 @@ string multiIP = "ff02::4242:4242";
 struct sockaddr_in6 multiaddr;
 char* textBuffer;
 
+#ifndef VERBOSE
+
 //Affichage défilant
 WINDOW* winput, * woutput;
 int row = 0, col = 0, oldrow = 0;
 
+#endif // !VERBOSE
+
 int NewSocket(int type, int port, struct sockaddr* p_addr, int& fd_multicast, struct sockaddr_in6* physicaladdr)
 {
-	/*// OPEN
-	int fd = socket(AF_INET6, SOCK_DGRAM, 0);
-
-	// BIND
-	struct sockaddr_in6 address = { AF_INET6, htons(MULTICAST_PORT) };
-	bind(fd, (struct sockaddr*)&address, sizeof address);
-
-	// JOIN MEMBERSHIP
-	struct ipv6_mreq group;
-	group.ipv6mr_interface = 0;
-	inet_pton(AF_INET6, multiIP.c_str(), &group.ipv6mr_multiaddr);
-	setsockopt(fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &group, sizeof group);
-
-	return fd;*/
-
 	int fd = socket(AF_INET6, type, 0);
 
 	if (fd < 0)
@@ -218,18 +207,26 @@ void InitUtils()
 	srand(static_cast<unsigned int>(time(NULL)));
 	textBuffer = new char[256];
 
+#ifndef VERBOSE
 	//Affichage avec curses
 	initscr();
 	woutput = newwin(LINES - 4, COLS, 0, 0);
 	winput = newwin(3, COLS, LINES - 4, 0);
 	scrollok(woutput, true);
+
+#endif // !VERBOSE
+
 }
 
 void QuitUtils()
 {
+#ifndef VERBOSE
+
 	delwin(winput);
 	delwin(woutput);
 	endwin();
+#endif // !VERBOSE
+
 	delete[] textBuffer;
 }
 
@@ -264,36 +261,56 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port)
 
 void writeLine(string line)
 {
+#ifdef VERBOSE
+	cout << line << endl;
+#else
 	waddstr(woutput, (line + "\n").c_str());
 	wrefresh(woutput);
+#endif // VERBOSE
 }
 
 void writeErr(string line)
 {
+#ifdef VERBOSE
+	cout << line << endl;
+#else
 	writeLine(line + " : " + string(strerror(errno)));
+#endif
 }
 
 string readLine()
 {
+#ifdef VERBOSE
+	string l;
+	getline(cin, l);
+	return l;
+#else
 	wgetstr(winput, textBuffer);
 	wclear(winput);
 	wrefresh(winput);
 
 	return string(textBuffer);
+#endif
 }
 
 string readLine(string inputText)
 {
+#ifdef VERBOSE
+	cout << inputText;
+	return readLine();
+#else
 	waddstr(winput, inputText.c_str());
 	wrefresh(winput);
 	wgetstr(winput, textBuffer);
 	wclear(winput);
 	wrefresh(winput);
 	return string(textBuffer);
+#endif
 }
 
 void refreshWin()
 {
+#ifndef VERBOSE
 	getmaxyx(stdscr, row, col);
 	if (row != oldrow)
 	{
@@ -302,6 +319,7 @@ void refreshWin()
 		wmove(winput, 0, 0);
 		oldrow = row;
 	}
+#endif // VERBOSE
 }
 
 #ifdef VERBOSE

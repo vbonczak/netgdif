@@ -10,7 +10,6 @@ int rawUDP_len = 0;
 bool rawUDP_read = true;
 bool receiving = false;
 
-
 int main(int argc, char* argv[])
 {
 	InitUtils();
@@ -45,6 +44,7 @@ void InitMain()
 	//Ctrl+C pour arrêter
 	if (sigaction_wrapper(SIGINT, sigint_handler) == -1)
 		exit(EXIT_FAILURE);
+
 	char* r = RandomBytes(8);
 	copyUUID(r, myId);
 	delete[] r;
@@ -67,6 +67,10 @@ void parseLine(string line)
 		{
 			nickname = line;
 			writeLine("Le surnom a été changé en '" + nickname + "'.");
+		}
+		else if (cmd == "/file")
+		{
+			//TODO transfert de fichier
 		}
 	}
 	else

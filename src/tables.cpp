@@ -100,6 +100,8 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 			}
 		}
 		RR[id] = info;
+		DEBUG("Ajouté à RR le message suivant : " + tlvToString(dataTLV));
+		DEBUGHEX(dataTLV.content.data.data, dataTLV.content.data.dataLen);
 		for (auto& e : RR[id].toFlood)
 		{
 			DEBUG("tofllood : " + to_string(e.second.first) + ", " + to_string(e.second.second));
@@ -111,6 +113,9 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		DATAID i;
 		copyUUID(data.senderID, i.id);
 		i.nonce = data.nonce;
+
+		DEBUG("Suppression d'un TLV pour un voisin particulier (" + to_string(from.addrIP[15]) + ") : " + tlvToString(dataTLV));
+		DEBUGHEX(data.data, data.dataLen);
 		RR[i].toFlood.erase(from);
 
 		//Dans tous les cas, un ACK
@@ -131,6 +136,8 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 		RR[i].toFlood.erase(from);
 		if (RR[i].toFlood.size() == 0)//Tous les destinataires ont aquitté la donnée
 		{
+			DEBUG("Suppression d'un TLV data à inonder dans RR : " + tlvToString(RR[i].tlv));
+			DEBUGHEX(RR[i].tlv.content.data.data, RR[i].tlv.content.data.dataLen);
 			freeTLV(RR[i].tlv);//Suppression des champs réservés pour les données
 			RR.erase(i);
 		}
@@ -291,11 +298,6 @@ void eraseFromTVA(const ADDRESS& addr)
 
 void freeAllTables()
 {
-	for (auto& entry : RR)
-	{
-		freeTLV(entry.second.tlv);
-		entry.second.toFlood.clear();
-	}
 #ifdef VERBOSE
 	DEBUG("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
 		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
@@ -327,6 +329,11 @@ void freeAllTables()
 	}
 	delete[] dest;
 #endif
+	for (auto& entry : RR)
+	{
+		freeTLV(entry.second.tlv);
+		entry.second.toFlood.clear();
+	}
 	TVA.clear();
 	TVP.clear();
 }

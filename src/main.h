@@ -6,17 +6,45 @@
 #include "mirc.h"
 #include <thread>
 
-bool quit = false;
-typedef void handler_t(int);
 using namespace std;
+
+/// <summary>
+/// Variable accédée par les deux threads, mais par un seul en écriture.
+/// </summary>
+bool quit = false;
+
+/// <summary>
+/// Gestion de l'interruption au clavier.
+/// </summary>
+typedef void handler_t(int);
+
+/// <summary>
+/// Effectue les initialisations au début du programme, comme l'ID unique du pair, et son pseudo.
+/// </summary>
 void InitMain();
 
+/// <summary>
+/// Permet de gérer l'entrée du pair dans la console.
+/// </summary>
+/// <param name="line"></param>
 void parseLine(string line);
 
+/// <summary>
+/// Envoyer un message dans le groupe.
+/// </summary>
+/// <param name="msg"></param>
 void sendMessage(string msg);
 
+/// <summary>
+/// Le fil d'exécution d'arrière plan.
+/// </summary>
 void background();
 
+/// <summary>
+/// Troisième fil d'exécution chargé d'attendre un paquet
+/// </summary>
+/// <param name="fd"></param>
+/// <param name="client"></param>
 void receive(int fd, sockaddr_in6* client);
 
 /// <summary>
@@ -26,10 +54,16 @@ void receive(int fd, sockaddr_in6* client);
 /// <returns></returns>
 ADDRESS mapIP(sockaddr_in* addr);
 
-
-
+/// <summary>
+/// Gestion des paquets UDP entrants
+/// </summary>
+/// <param name="dgram"></param>
+/// <param name="from"></param>
 void manageDatagram(MIRC_DGRAM& dgram, ADDRESS& from);
 
+/*
+Les fonctions suivantes sont chacune dédiées à un certain type de TLV, traitées ensemble par type.
+*/
 void manageNeighbours(list<TLV>& tlvs);
 void manageHellos(list<TLV>& tlvs, ADDRESS& from);
 void manageDatas(list<TLV>& tlvs, ADDRESS& from);
@@ -37,8 +71,15 @@ void manageAcks(list<TLV>& tlvs, ADDRESS& from);
 void manageGoAways(list<TLV>& tlvs, ADDRESS& from);
 void manageWarnings(list<TLV>& tlvs);
 
-
-int setup(struct sockaddr_in6*, int& fd, int& mfd, struct sockaddr_in6* physaddr);
+/// <summary>
+/// Établissement des connexion, gestion multicast.
+/// </summary>
+/// <param name="serv"></param>
+/// <param name="fd"></param>
+/// <param name="mfd"></param>
+/// <param name="physaddr"></param>
+/// <returns></returns>
+int setup(struct sockaddr_in6* serv, int& fd, int& mfd, struct sockaddr_in6* physaddr);
 
 /// <summary>
 /// Le CTRL+C
