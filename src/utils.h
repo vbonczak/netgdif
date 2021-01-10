@@ -66,8 +66,6 @@ void InitUtils();
 
 void QuitUtils();
 
-#define VERBOSE
-
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
 #define DEBUGHEX(x,y)	verbosehex(x,y)
