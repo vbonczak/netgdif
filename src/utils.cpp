@@ -343,7 +343,7 @@ string EatToken(string& line, char sep)
 
 void verbose(string msg) {
 	writeLine("[Debug t = " + to_string(
-		GetTime()) + "]" + msg + "\n");
+		GetTime()) + "]" + msg);
 }
 
 void verbosehex(char* data, int l)

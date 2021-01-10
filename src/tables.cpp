@@ -134,13 +134,6 @@ void Table_ACKFrom(TLV& ackTLV, ADDRESS& from)
 	if (RR.find(i) != RR.end())
 	{
 		RR[i].toFlood.erase(from);
-		if (RR[i].toFlood.size() == 0)//Tous les destinataires ont aquitté la donnée
-		{
-			DEBUG("Suppression d'un TLV data à inonder dans RR : " + tlvToString(RR[i].tlv));
-			DEBUGHEX(RR[i].tlv.content.data.data, RR[i].tlv.content.data.dataLen);
-			freeTLV(RR[i].tlv);//Suppression des champs réservés pour les données
-			RR.erase(i);
-		}
 	}
 	freeTLV(ackTLV);
 }
@@ -156,7 +149,10 @@ void Table_CleanRR()
 	}
 
 	for (DATAID i : toRemove)
+	{
+		freeTLV(RR[i].tlv);
 		RR.erase(i);
+	}
 }
 
 void Table_RefreshTVA()
@@ -224,18 +220,10 @@ void Flood()
 {
 	int time = GetTime();
 	
-	list<DATAID> toRem;
-
 	for (auto& entry : RR)
 	{
 		const DATAID& id = entry.first;
 		DATAINFO& info = entry.second;
-		
-		if (info.toFlood.size() == 0)
-		{
-			toRem.push_back(id);
-			freeTLV(info.tlv);
-		}
 
 		for (auto& dest : info.toFlood)
 		{
@@ -265,8 +253,6 @@ void Flood()
 			}
 		}
 	}
-	for (DATAID id : toRem)
-		RR.erase(id);
 }
 
 void sendHello(list<ADDRESS>& nonSym)
