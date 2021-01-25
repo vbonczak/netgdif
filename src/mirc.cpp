@@ -9,7 +9,7 @@ list<TLV> pendingForFlood; //liste accedée par les deux threads, sujette à mut
 mutex pendingForFloodLock; //le mutex en question
 
 //Nombre minimal de voisins symétriques
-int minSymNeighbours = 10;
+int minSymNeighbours = 3;
 
 int parseDatagram(char* data, unsigned int length, MIRC_DGRAM& content)
 {

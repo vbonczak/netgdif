@@ -11,6 +11,7 @@ LIBS = -lpthread  -lncurses
 all: netgdif
 
 verbose: CXXFLAGS += -DVERBOSE
+verbose: clean
 verbose: netgdif
 
 netgdif: $(OBJ)

@@ -74,6 +74,10 @@ void parseLine(string line)
 		{
 			quit = true;
 		}
+		else if (cmd == "/dump")
+		{
+			printTables();
+		}
 		else if (cmd == "/malicious")
 		{
 			//Envoi d'un TLV PadN avec un 1

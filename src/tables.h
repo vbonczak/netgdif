@@ -110,4 +110,6 @@ void freeAllTables();
 /// Envoi spécial d'un Hello en multicast
 /// </summary>
 void sendHello(list<ADDRESS>& nonSym);
+
+void printTables();
 #endif

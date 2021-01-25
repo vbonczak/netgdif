@@ -8,6 +8,8 @@
 
 using namespace std;
 
+
+
 /// <summary>
 /// Variable accédée par les deux threads, mais par un seul en écriture.
 /// </summary>

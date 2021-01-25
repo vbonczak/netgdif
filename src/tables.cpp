@@ -10,7 +10,6 @@ unordered_map<DATAID, DATAINFO, DATAIDHash> RR;
 int MAX_RR = 1000;
 int DATA_LIFETIME = 3 * MINUTE;
 
-
 void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 {
 	if (equalsUUID(helloTLV.content.hello.sourceID, myId))
@@ -35,6 +34,7 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 			{
 				//Symétrique
 				TVA[addr].symmetrical = true;
+				DEBUG("Le voisin " + UUIDtoString(TVA[addr].id) + " a été marqué comme symétrique.");
 			}
 		}
 		else
@@ -101,10 +101,9 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		}
 		RR[id] = info;
 		DEBUG("Ajouté à RR le message suivant : " + tlvToString(dataTLV));
-		DEBUGHEX(dataTLV.content.data.data, dataTLV.content.data.dataLen);
 		for (auto& e : RR[id].toFlood)
 		{
-			DEBUG("tofllood : " + to_string(e.second.first) + ", " + to_string(e.second.second));
+			DEBUG("toFlood : " + to_string(e.second.first) + ", " + to_string(e.second.second));
 		}
 	}
 	else
@@ -114,7 +113,7 @@ void Table_DataFrom(TLV dataTLV, ADDRESS& from)
 		copyUUID(data.senderID, i.id);
 		i.nonce = data.nonce;
 
-		DEBUG("Suppression d'un TLV pour un voisin particulier (" + to_string(from.addrIP[15]) + ") : " + tlvToString(dataTLV));
+		DEBUG("Suppression d'un TLV pour un voisin particulier, sur réception d'un data reçu de celui-ci (" + to_string(from.addrIP[15]) + ") : " + tlvToString(dataTLV));
 		DEBUGHEX(data.data, data.dataLen);
 		RR[i].toFlood.erase(from);
 
@@ -171,7 +170,7 @@ void Table_RefreshTVA()
 			string message = "Inactif depuis 2 minutes";
 			//Code 2
 			pushTLVToSend(tlvGoAway(TLV_GOAWAY_IDLE, message.size(), message.c_str()), entry.first);
-			DEBUG("TVA : Envoyé goaway code 2");
+			DEBUG("TVA : Envoyé goaway code 2 car plus de hello depuis 2 minutes de " + UUIDtoString(entry.second.id));
 			continue;
 		}
 		else if (time - entry.second.lastHello16Date > 2 * MINUTE)
@@ -219,7 +218,7 @@ void Table_RefreshTVA()
 void Flood()
 {
 	int time = GetTime();
-	
+
 	for (auto& entry : RR)
 	{
 		const DATAID& id = entry.first;
@@ -233,6 +232,8 @@ void Flood()
 				pushTLVToSend(tlvGoAway(TLV_GOAWAY_IDLE, 11, "Très lent"));
 				//Retirer de la table des actifs
 				eraseFromTVA(dest.first);
+
+				DEBUG("Les données ont été envoyées plus de 5 fois");
 			}
 			else
 			{
@@ -296,6 +297,20 @@ void eraseFromTVA(const ADDRESS& addr)
 void freeAllTables()
 {
 #ifdef VERBOSE
+	printTables();
+#endif
+	for (auto& entry : RR)
+	{
+		freeTLV(entry.second.tlv);
+		entry.second.toFlood.clear();
+	}
+	TVA.clear();
+	TVP.clear();
+}
+
+#ifdef VERBOSE
+void printTables()
+{
 	DEBUG("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
 		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
 
@@ -312,25 +327,53 @@ void freeAllTables()
 		}
 		cout << "}\n";
 	}
-	cout << "TVA\n";
+	cout << "-------TVA-------\n";
 	for (auto& entry : TVA)
 	{
 		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
 		cout << "Voisin actif " << dest << (entry.second.symmetrical ? " Sym " : " ") << endl;
 	}
-	cout << "TVP\n";
+	cout << "-------TVP-------\n";
 	for (auto& entry : TVP)
 	{
 		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
 		cout << "Voisin potentiel " << dest << " d'Id " << UUIDtoString(entry.second) << endl;
 	}
 	delete[] dest;
-#endif
+}
+#else
+void printTables()
+{
+	writeLine("Statistiques : \nDonnées à inonder (RR) = " + to_string(RR.size()) + "\n"
+		+ "TVA = " + to_string(TVA.size()) + "  TVP = " + to_string(TVP.size()));
+
+	char* dest = new char[50]{ 0 };
 	for (auto& entry : RR)
 	{
-		freeTLV(entry.second.tlv);
-		entry.second.toFlood.clear();
+		writeLine(tlvToString(entry.second.tlv));
+		writeLine("infos{");
+		for (auto& entry2 : entry.second.toFlood)
+		{
+			inet_ntop(AF_INET6, &entry2.first.nativeAddr.sin6_addr, dest, 50);
+			writeLine("à dest. de " + string(dest) + " " + to_string(entry2.second.first) + " fois, prochain envoi à " + to_string(entry2.second.second));
+
+		}
+		writeLine("}\n");
 	}
-	TVA.clear();
-	TVP.clear();
+	writeLine("-------TVA--------");
+	for (auto& entry : TVA)
+	{
+		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
+		writeLine("Voisin actif " + string(dest) + (entry.second.symmetrical ? " Sym " : " "));
+	}
+	writeLine("-------TVP--------");
+	for (auto& entry : TVP)
+	{
+		inet_ntop(AF_INET6, &entry.first.nativeAddr.sin6_addr, dest, 50);
+		writeLine("Voisin potentiel " + string(dest) + " d'Id " + UUIDtoString(entry.second));
+	}
+	delete[] dest;
+
+	writeLine("Activez le mode verbeux pour pouvoir défiler.");
 }
+#endif

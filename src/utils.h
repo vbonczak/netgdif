@@ -65,7 +65,7 @@ struct sockaddr_in6 address2IP(char ipv6[16], unsigned short port);
 void InitUtils();
 
 void QuitUtils();
-
+//#define VERBOSE
 #ifdef VERBOSE
 #define DEBUG(x)	verbose(x)
 #define DEBUGHEX(x,y)	verbosehex(x,y)
