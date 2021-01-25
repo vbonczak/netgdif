@@ -45,7 +45,7 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 	}
 	//Mise à jour des instants de réception des hellos.
 	TVA[addr].lastHelloDate = time;
-	if (helloTLV.content.hello.longFormat && equalsUUID(myId, helloTLV.content.hello.destID))
+	if (!TVA[addr].symmetrical && helloTLV.content.hello.longFormat && equalsUUID(myId, helloTLV.content.hello.destID))
 	{
 		TVA[addr].lastHello16Date = time;
 		DEBUG("Le voisin " + UUIDtoString(TVA[addr].id) + " a été marqué comme symétrique.");
