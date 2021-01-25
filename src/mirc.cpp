@@ -119,7 +119,6 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 
 int parseTLV_PADN(char* body, unsigned int sz, unsigned int* parsedLength)
 {
-	DEBUG(string(__PRETTY_FUNCTION__));
 	if (sz < 1)
 		return PARSE_EEMPTYTLV;
 

@@ -258,7 +258,6 @@ void doReceive(thread** recvThread, int socket, bool* readFlag, bool* receivingF
 		//Décodage
 		MIRC_DGRAM dgram;
 		int status = parseDatagram(rawUDP, *recvLen, dgram);
-		DEBUG("reçu sur la socket" + to_string(socket));
 		ADDRESS ad = mapIP((struct sockaddr_in*)sender);
 
 		if (status == PARSE_EINVALID)
