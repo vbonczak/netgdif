@@ -297,9 +297,9 @@ void eraseFromTVA(const ADDRESS& addr)
 
 void freeAllTables()
 {
-#ifdef VERBOSE
+ 
 	printTables();
-#endif
+ 
 	for (auto& entry : RR)
 	{
 		freeTLV(entry.second.tlv);
