@@ -48,6 +48,7 @@ void Table_HelloFrom(ADDRESS& addr, TLV helloTLV)
 	if (helloTLV.content.hello.longFormat && equalsUUID(myId, helloTLV.content.hello.destID))
 	{
 		TVA[addr].lastHello16Date = time;
+		DEBUG("Le voisin " + UUIDtoString(TVA[addr].id) + " a été marqué comme symétrique.");
 		TVA[addr].symmetrical = true;
 	}
 
@@ -177,7 +178,7 @@ void Table_RefreshTVA()
 		{
 			//Non symétrique si pas reçu de long hello depuis deux minutes
 			entry.second.symmetrical = false;
-			DEBUG("TVA : Voisin marqué non symétrique");
+			DEBUG("TVA : Voisin marqué non symétrique : " + UUIDtoString(entry.second.id));
 		}
 		if (!entry.second.symmetrical)
 			nonSym.push_back(entry.first);
