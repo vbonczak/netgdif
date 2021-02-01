@@ -29,6 +29,8 @@
 	nous revenons sur l'état général du projet et ce qui a pu être effectivement réalisé, par rapport à notre ambition de départ. La seconde partie traite 
 	des détails d'implémentation et des difficultés rencontrées lors de la phase de programmation du protocole. On trouvera enfin en conclusion de ce rapport
 	des remarques à propos des tests effectuées, nos réserves quant au comportement actuel du programme, ainsi que quelques perspectives envisageables.
+	
+
 	\end{abstract}
 	
 	
@@ -36,10 +38,14 @@
 
 L'implémentation d'un système de discussion publique et distribué comporte plusieurs parties dont la plus importante reste la mise en œuvre d'un algorithme \emph{distribué}. Pour ce projet, le sujet fournissait cet algorithme, restait donc l'implémentation.
 
-Cette dernière a été réalisée en C++\footnote{Standard C++14.} à l'aide  des fonctions de la bibliothèque standard, ainsi que de la bibliothèque d'affichage en mode texte \texttt{ncurses}.
+Cette dernière a été réalisée en C++\footnote{Standard C++14.} à l'aide  des fonctions de la bibliothèque standard, ainsi que de la bibliothèque d'affichage en mode texte \texttt{ncurses}\footnote{Package \texttt{libncurses-dev}.}.
 
 \subsection{État du projet}
 
+Précisons tout d'abord que le présent projet (version 1.1 du 10 janvier 2021 à 18h20) fait suite à la première version du 9 janvier 2021 à 23h45. Il corrige
+un problème de messages dupliqués par inadvertance.
+
+\medskip
 
 Le sujet minimal a été suivi, avec quelques extensions détaillées dans la suite. Nous n'avons cependant pas couvert IPv4 (en fait le pair exige une adresse IPv6). Cependant si un pair géré par
 une autre implémentation que la nôtre communique avec nous en IPv4, nous sommes en mesure de le recevoir -- à supposer qu'il puisse envoyer dans un multicast 
@@ -92,6 +98,9 @@ plus tard avec la commande \texttt{/nick <pseudo>}.  Pour quitter, tapez Ctrl+C 
 En cas de problème, il est possible de compiler avec l'option \texttt{-DVERBOSE}, qui affiche presque tout ce qui se passe dans l'algorithme (l'affichage défilant 
 est d'ailleurs désactivé, ce qui permet de conserver la trace d'exécution une fois le programme terminé).
 
+Par ailleurs, si un pair avec une autre implémentation n'arrive pas à faire parvenir ses Hello courts jusqu'à notre programme, il est possible de l'ajouter
+manuellement à la table des voisins actifs avec la command \texttt{/test <IPv6> <Port>}.
+
 \section{Implémentation}
 
 \subsection{Garanties}
@@ -116,10 +125,15 @@ n'est pris en compte).
 		\caption{Vue d'ensemble résumée de l'algorithme}
 	\end{figure}
 	
+	\noindent\textbf{Découverte de voisins.} Les voisins sont découverts par envoi de messages Hello courts vers un groupe multicast sur le port 1212 (adresse
+	\verb|ff02::4242:4242|, définie en haut de \texttt{utils.cpp} au besoin). Ainsi nous récupérons leur adresse physique, qui est ajoutée aux tables de voisins.
+	
 	Quelques détails de gestion, notamment concernant les délais d'envoi:
 	
 	\begin{itemize}
 		\item 	Les TLV en attente (Data et Neighbour) sont envoyés toutes les 5 secondes, et les Hello courts toutes les 5 secondes également (en multicast, de façon 	directe sans passer par la mise en attente).
+		
+		\item Les TLV Neighbour sont envoyés toutes les minutes.
 	
 	\item On supprime le voisin de la TVA lors de la réception d'un GoAway de sa part.
 	
