@@ -102,7 +102,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			//DEBUG("Réception " + tlvToString(curtlv) +".");
+			DEBUG("Réception " + tlvToString(curtlv) +".");
 		}
 		else
 		{
@@ -204,7 +204,6 @@ int parseTLV_Data(char* body, unsigned int sz, unsigned int* parsedLength, TLV_d
 	tlv.data.data[len - 13] = 0; //Assurer que le caractère NUL y est pour l'affichage.
 	memcpy(tlv.data.data, body + 13, len - 12);
 
-	DEBUG("parsed DATA avec " + to_string(tlv.data.dataLen));
 	*parsedLength = len + 1;
 
 	return 0;
