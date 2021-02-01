@@ -102,7 +102,7 @@ int parseTLVCollection(char* body, unsigned short sz, MIRC_DGRAM& content)
 			TLV curtlv(type);
 			curtlv.content = cur;
 			content[type].push_back(curtlv);
-			DEBUG(" Réception " + tlvToString(curtlv));
+			DEBUG("Réception " + tlvToString(curtlv) +".");
 		}
 		else
 		{
